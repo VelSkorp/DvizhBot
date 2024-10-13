@@ -21,7 +21,7 @@ impl MsgRequest {
     }
 
     pub fn get_msg_text(&self) -> String {
-        return self.get_msg().unwrap_or_default().text.to_string();
+        return self.get_msg().unwrap_or_default().text.unwrap_or_default();
     }
     
     pub fn get_msg(&self) -> Result<Message, &'static str> {
@@ -30,7 +30,7 @@ impl MsgRequest {
 
     pub fn set_msg_text(&mut self, value: &str) {
         if let Some(msg) = self.msg.as_mut() {
-            msg.text = value.to_string();
+            msg.text = Some(value.to_string());
         }
     }
 }
@@ -78,7 +78,7 @@ pub async fn send_msg(
     let msg = req.get_msg().unwrap_or_default();
     let mut params: HashMap<&str, String> = HashMap::new();
     params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("text", format!("{}: {}", msg.from.first_name, msg.text));
+    params.insert("text", msg.text.unwrap().to_string());
     debug!("Send message: {:?}", params);
     let _response = send_request(&req.app.cli, &req.app.conf.tg_token, msg_type_to_str(&req.method), &params).await?;
 

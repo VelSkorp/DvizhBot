@@ -1,8 +1,8 @@
-use crate::tg_objects::Message;
+use crate::tg_objects::{Message, User};
 use crate::application::Application;
 use crate::tg_bot::{send_msg, send_error_msg, MsgRequest};
 use crate::tg_utils::{CommandType, command_str_to_type, find_chat_id, MsgType};
-use serde_json::Value;
+use serde_json::{Error, Value};
 use log::{debug, warn, error};
 
 pub async fn handle_message(app : Application, response_results: &Vec<Value>, offset: &mut i64) -> Result<(), Box<dyn std::error::Error>>
@@ -17,17 +17,24 @@ pub async fn handle_message(app : Application, response_results: &Vec<Value>, of
             
             let msg_obj: Value = serde_json::from_str(res["message"].to_string().as_str()).unwrap();
             let chat_id = find_chat_id(&msg_obj);
-            let msg = match serde_json::from_value(msg_obj) {
+            let msg: Option<Message> = match serde_json::from_value(msg_obj) {
                 Ok(m) => m,
-                Err(_) => {
-                    handle_error(offset, &mut MsgRequest::new(app.clone(), res["update_id"].as_i64().unwrap(), MsgType::SendMessage, Some(Message::new(chat_id.unwrap(), "")))).await?;
+                Err(er) => {
+                    error!("{er}");
+                    handle_error(er, offset, &mut MsgRequest::new(app.clone(), res["update_id"].as_i64().unwrap(), MsgType::SendMessage, Some(Message::new(chat_id.unwrap())))).await?;
                     continue;
-                },
+                }
             };
+            let new_member = msg.clone().unwrap().new_chat_member;
 
             let mut req : MsgRequest = 
                 MsgRequest::new(app.clone(), res["update_id"].as_i64().unwrap(), MsgType::SendMessage, msg);
             
+            if new_member.is_some() {
+                handle_new_member(new_member.unwrap(), offset, &mut req).await?;
+                continue;
+            }
+
             // Check if the message is a command
             if req.get_msg_text().starts_with("/") 
             {
@@ -55,11 +62,25 @@ pub async fn handle_message(app : Application, response_results: &Vec<Value>, of
 }
 
 
-async fn handle_error(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 
+async fn handle_error(error: Error, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 
 {
-    error!("Handle error");
+    error!("Handle error: {error}");
     req.set_msg_text(&"Wrong command".to_string());
     send_error_msg(offset, req.get_msg().unwrap().chat.id, req).await
+}
+
+async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 
+{
+    debug!("Handle new member: {member:#?}");
+
+    if member.is_bot && member.first_name == "DvizhBot" {
+        req.set_msg_text("Hello everyone!!! My name is Oleg, I'm a bot of our dvizh.");
+    }
+    else {
+        req.set_msg_text(&format!("Welcome {}", member.first_name));
+    }
+
+    send_msg(offset, req).await
 }
 
 async fn handle_command(offset: &mut i64, command_t : Option<CommandType>, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 

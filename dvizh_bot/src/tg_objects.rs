@@ -11,39 +11,49 @@ pub struct Message {
     pub date: i64,
     pub from: User,
     pub message_id: i64,
-    pub text: String,
+    pub text: Option<String>,
+    pub new_chat_member: Option<User>
 }
 
 impl Message {
-    pub fn new(chat_id: i64, from_first_name: &str) -> Self {
+    pub fn new(chat_id: i64) -> Self {
         Message {
             chat: Chat {
-                first_name: from_first_name.to_string(),
                 id: chat_id,
                 chat_type: "".to_string(),
+                first_name: Some("".to_string()),
+                title: Some("".to_string()),
                 username: None,
             },
             date: 0,
             from: User {
-                first_name: from_first_name.to_string(),
+                first_name: "".to_string(),
                 id: chat_id,
                 is_bot: false,
-                language_code: "".to_string(),
+                language_code: Some("".to_string()),
                 username: "".to_string(),
             },
             message_id: 0,
-            text: "".to_string(),
+            text: Some("".to_string()),
+            new_chat_member: Some(User {
+                first_name: "".to_string(),
+                id: chat_id,
+                is_bot: false,
+                language_code: Some("".to_string()),
+                username: "".to_string(),
+            })
         }
     }
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Chat {
-    pub first_name: String,
     pub id: i64,
     #[serde(rename = "type")]
     pub chat_type: String,
+    pub first_name: Option<String>,
     pub username: Option<String>,
+    pub title: Option<String>
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
@@ -51,7 +61,7 @@ pub struct User {
     pub first_name: String,
     pub id: i64,
     pub is_bot: bool,
-    pub language_code: String,
+    pub language_code: Option<String>,
     pub username: String,
 }
 
