@@ -1,7 +1,9 @@
-use crate::tg_objects::{Message, User};
+use crate::db::db_objects::{Chat, User as DbUser};
+use crate::db::repository::DvizhRepository;
+use crate::tg::tg_objects::{Message, User};
 use crate::application::Application;
-use crate::tg_bot::{send_msg, send_error_msg, MsgRequest};
-use crate::tg_utils::{CommandType, command_str_to_type, find_chat_id, MsgType};
+use crate::tg::tg_bot::{send_msg, send_error_msg, MsgRequest};
+use crate::tg::tg_utils::{CommandType, command_str_to_type, find_chat_id, MsgType};
 use serde_json::{Error, Value};
 use log::{debug, warn, error};
 
@@ -69,18 +71,28 @@ async fn handle_error(error: Error, offset: &mut i64, req: &mut MsgRequest) -> R
     send_error_msg(offset, req.get_msg().unwrap().chat.id, req).await
 }
 
-async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 
+async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     debug!("Handle new member: {member:#?}");
 
+    let chat = req.msg.as_ref().unwrap().chat.clone();
+    let user_repo = DvizhRepository::new(&req.app.conf.db_path)?;
+
     if member.is_bot && member.first_name == "DvizhBot" {
         req.set_msg_text("Hello everyone!!! My name is Oleg, I'm a bot of our dvizh.");
+        user_repo.add_chat(
+            Chat::new(chat.id, chat.title)
+        )?;
     }
     else {
         req.set_msg_text(&format!("Welcome {}", member.first_name));
+        user_repo.add_user(
+            DbUser::new(member.id, member.username, member.first_name, None, member.language_code),
+            Chat::new(chat.id, chat.title)
+        )?;
     }
 
-    send_msg(offset, req).await
+    send_msg(offset, req).await.map_err(|e| Box::<dyn std::error::Error>::from(e))
 }
 
 async fn handle_command(offset: &mut i64, command_t : Option<CommandType>, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 

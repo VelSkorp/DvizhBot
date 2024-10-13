@@ -1,7 +1,7 @@
 use crate::application::Application;
-use crate::tg_utils::{MsgType, msg_type_to_str};
-use crate::tg_handlers::handle_message;
-use crate::tg_objects::Message;
+use crate::tg::tg_utils::{MsgType, msg_type_to_str};
+use crate::tg::tg_handlers::handle_message;
+use crate::tg::tg_objects::Message;
 use std::collections::HashMap;
 use reqwest::Client;
 use serde_json::Value;

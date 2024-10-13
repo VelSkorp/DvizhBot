@@ -4,6 +4,7 @@ use serde::Deserialize;
 #[derive(Debug, Clone, Deserialize)]
 pub struct BotConfig {
     pub tg_token: String,
+    pub db_path: String,
     pub ip_address: String,
 }
 
