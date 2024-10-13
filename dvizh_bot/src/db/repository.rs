@@ -82,6 +82,21 @@ impl DvizhRepository {
         Ok(())
     }
 
+    pub fn update_user(&self, user: User) -> Result<()> {
+        self.connection.execute(
+            "UPDATE User
+                SET username = ?2,
+                    first_name = ?3,
+                    birthdate = ?4,
+                    language_code = ?5
+            WHERE id = ?1",
+            params![user.id, user.username, user.first_name, user.birthdate, user.language_code]
+        )?;
+        debug!("db updated user {user:#?}");
+
+        Ok(())
+    }
+
     fn chat_not_exists(&self, group_id: i64) -> Result<bool> {
         let mut stmt = self.connection.prepare("SELECT EXISTS(SELECT 1 FROM Chat WHERE id = ?1)")?;
         let exists: bool = stmt.query_row(params![group_id], |row| row.get(0))?;

@@ -9,6 +9,7 @@ pub enum MsgType {
 
 pub enum CommandType {
     Hello,
+    SetMyBirthdate,
 }
 
 pub fn msg_type_to_str(t: &MsgType) -> &'static str 
@@ -20,16 +21,10 @@ pub fn msg_type_to_str(t: &MsgType) -> &'static str
     }
 }
 
-// pub fn command_type_to_str(t: &CommandType) -> &'static str 
-// {
-//     match t {
-//         CommandType::Hello => "hello",
-//     }
-// }
-
 pub fn command_str_to_type(t: &str) -> Option<CommandType> {
     match t.to_lowercase().as_str() {
         "hello" => Some(CommandType::Hello),
+        "mybirthdayis" => Some(CommandType::SetMyBirthdate),
         _ => None,
     }
 }
