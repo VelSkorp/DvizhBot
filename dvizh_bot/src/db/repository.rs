@@ -4,11 +4,11 @@ use super::db_objects::{Chat, User};
 
 #[derive(Debug)]
 pub struct DvizhRepository {
-    connection: Connection,
+    connection: Connection
 }
 
 impl DvizhRepository {
-    pub fn new(db_path: &String) -> Result<Self> {
+    pub fn new(db_path: &str) -> Result<Self> {
         let connection = Connection::open(db_path)?;
         Ok(DvizhRepository { connection })
     }
@@ -42,7 +42,7 @@ impl DvizhRepository {
         }
 
         self.add_membership(new_user.id, chat_id)?;
-
+        
         Ok(())
     }
 
@@ -64,7 +64,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn add_membership(&self, user_id: i64, grop_id: i64) -> Result<()> {
+    fn add_membership(&self, user_id: i64, grop_id: i64) -> Result<()> {
         self.connection.execute(
             "INSERT INTO Members (
                         group_id,
@@ -95,6 +95,46 @@ impl DvizhRepository {
         debug!("db updated user {user:#?}");
 
         Ok(())
+    }
+
+    pub fn get_users_by_birthday(&self, birthday: &str) -> Result<Vec<User>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT id,
+                username,
+                first_name,
+                birthdate,
+                language_code
+            FROM User WHERE birthdate LIKE ?1"
+        )?;
+        let users = stmt.query_map(params![format!("{}%", birthday)], |row| {
+            Ok(User {
+                id: row.get(0)?,
+                username: row.get(1)?,
+                first_name: row.get(2)?,
+                birthdate: row.get(3)?,
+                language_code: row.get(4)?,
+            })
+        })?
+        .map(|result| result.unwrap())
+        .collect::<Vec<User>>();
+
+        debug!("db get users by birthday {birthday}: {users:#?}");
+
+        Ok(users)
+    }
+
+    pub fn get_chats_for_user(&self, user_id: &i64) -> Result<Vec<i64>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT group_id FROM Members WHERE user_id = ?1",
+        )?;
+        
+        let chat_ids = stmt.query_map(params![user_id], |row| row.get(0))?
+            .map(|result| result.unwrap())
+            .collect::<Vec<i64>>();
+        
+        debug!("db get chats for user {user_id}: {chat_ids:#?}");
+    
+        Ok(chat_ids)
     }
 
     fn chat_not_exists(&self, group_id: i64) -> Result<bool> {
