@@ -14,6 +14,7 @@ mod application;
 mod errors;
 
 pub use bot_config::BotConfig;
+use tg::tg_bot::happy_birthday;
 pub use std::error::Error;
 pub use tg::tg_utils::MsgType;
 pub use tg::tg_bot::run;
@@ -22,6 +23,8 @@ pub use application::Application;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let app = Application::init()?;
+
+    tokio::spawn(happy_birthday(app.clone()));
 
     run(app, &MsgType::GetUpdates).await;
     Ok(())
