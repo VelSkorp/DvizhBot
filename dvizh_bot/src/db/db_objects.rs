@@ -2,17 +2,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct User {
-    pub id: i64,
     pub username: String,
-    pub first_name: String,
+    pub first_name: Option<String>,
     pub birthdate: Option<String>,
     pub language_code: Option<String>
 }
 
 impl User {
-    pub fn new(id: i64, username: String, first_name: String, birthdate: Option<String>, language_code: Option<String>) -> Self {
+    pub fn new(username: String, first_name: Option<String>, birthdate: Option<String>, language_code: Option<String>) -> Self {
         User {
-            id,
             username,
             first_name,
             birthdate,

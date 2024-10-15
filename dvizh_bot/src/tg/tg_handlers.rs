@@ -43,20 +43,13 @@ pub async fn handle_message(app : Application, response_results: &Vec<Value>, of
                     handle_command(offset, None, None, &mut req).await?;
                     continue;
                 }
-                let text = req.get_msg_text();
-                let command = text[1..].split_whitespace().collect::<Vec<&str>>();
-                debug!("Handle {} command", command[0]);
-                handle_command(offset, command_str_to_type(command[0]), Some(command[1..].to_vec()), &mut req).await?;
+                let msg_text = req.get_msg_text();
+                let text = msg_text[1..].split_whitespace().collect::<Vec<&str>>();
+                let command = text[0].split('@').next().unwrap();
+                debug!("Handle {} command", command);
+                handle_command(offset, command_str_to_type(command), Some(text[1..].to_vec()), &mut req).await?;
                 continue;
             }
-            req.set_msg_text(&"It's not a command");
-            send_msg(offset, &mut req).await?;
-            continue;
-        }
-        else {
-            debug!("Unknown command {:?}", res);
-            *offset = res["update_id"].as_i64().unwrap() + 1;
-            continue;
         }
     }
     Ok(())
@@ -78,15 +71,15 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
 
     if member.is_bot && member.first_name == "DvizhBot" {
-        req.set_msg_text("Hello everyone!!! My name is Oleg, I'm a bot of our dvizh.");
+        req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
         dvizh_repo.add_chat(
             Chat::new(chat.id, chat.title)
         )?;
     }
     else {
         req.set_msg_text(&format!("Welcome {}", member.first_name));
-        dvizh_repo.add_user(
-            DbUser::new(member.id, member.username, member.first_name, None, member.language_code),
+        dvizh_repo.add_or_update_user(
+            DbUser::new(member.username, Some(member.first_name), None, member.language_code),
             Chat::new(chat.id, chat.title)
         )?;
     }
@@ -97,34 +90,63 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
 async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, command_args: Option<Vec<&str>>, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     match command_t {
-        Some(CommandType::Hello) => handle_hello_command(offset, req).await.map_err(|e| Box::<dyn std::error::Error>::from(e)),
-        Some(CommandType::SetMyBirthdate) => handle_set_my_birthdate_command(offset, command_args.unwrap()[0], req).await,
-        None => handle_unknown_command(offset, req).await.map_err(|e| Box::<dyn std::error::Error>::from(e)),
+        Some(CommandType::Hello) => handle_hello_command(req),
+        Some(CommandType::SetBirthdate) => {
+            if command_args.as_ref().map_or(true, |args| args.is_empty()) {
+                req.set_msg_text("Sorry, I can't remember your birthday. You didn't specify it.");
+            }
+            else {
+                handle_set_birthdate_command(command_args.unwrap()[0], req)?
+            }
+        },
+        Some(CommandType::SetBirthdateFor) => {
+            let empty_vec = &vec![];
+            let args= command_args.as_ref().unwrap_or(empty_vec);
+            if args.is_empty() || args.len() < 2 {
+                req.set_msg_text("Sorry, I can't remember his/her birthday. You didn't specify it.");
+            }
+            else {
+                handle_set_birthdate_for_command(args[0],None, None, args[1], req)?
+            }
+        },
+        None => handle_unknown_command(req),
     }
-}
-
-async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 
-{
-    debug!("Hello command was called");
-    req.set_msg_text("Hello, my name is Oleg, I'm a bot of our dvizh.");
-    send_msg(offset, req).await
-}
-
-async fn handle_set_my_birthdate_command(offset: &mut i64, date: &str, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
-{
-    debug!("SetMyBirthdate command was called");
-    let user = req.get_msg().unwrap_or_default().from;
-    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
-    dvizh_repo.update_user(
-        DbUser::new(user.id, user.username, user.first_name, Some(date.to_string()), user.language_code)
-    )?;
-    req.set_msg_text("SetMyBirthdate command was called");
     send_msg(offset, req).await.map_err(|e| Box::<dyn std::error::Error>::from(e))
 }
 
-async fn handle_unknown_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 
+fn handle_hello_command(req: &mut MsgRequest) 
+{
+    debug!("Hello command was called");
+    req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
+}
+
+fn handle_set_birthdate_command(date: &str, req: &mut MsgRequest) -> Result<(), Box<dyn std::error::Error>> 
+{
+    debug!("SetBirthdate command was called with {date}");
+    let user = req.get_msg().unwrap_or_default().from;
+    handle_set_birthdate_for_command(&user.username, Some(user.first_name), user.language_code, date, req)
+}
+
+fn handle_set_birthdate_for_command(username: &str, first_name: Option<String>, language_code: Option<String>, date: &str, req: &mut MsgRequest) -> Result<(), Box<dyn std::error::Error>> 
+{
+    debug!("SetBirthdateFor command was called with {date}");
+    let usr = username.replace("@", "");
+    let chat = req.get_msg().unwrap_or_default().chat;
+    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
+    dvizh_repo.add_or_update_user(
+        DbUser::new(
+            usr, 
+            first_name,
+            Some(date.to_string()), 
+            language_code),
+        Chat::new(chat.id, chat.title)
+    )?;
+    req.set_msg_text(&format!("I memorized this day {date}"));
+    Ok(())
+}
+
+fn handle_unknown_command(req: &mut MsgRequest)
 {
     warn!("Unknown command was called");
     req.set_msg_text("Unknown command was called");
-    send_msg(offset, req).await
 }

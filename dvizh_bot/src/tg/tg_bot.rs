@@ -128,7 +128,6 @@ pub async fn run(app : Application, t: &MsgType)
 pub async fn happy_birthday(app : Application)
 {
     // Store the date of the last execution
-    // let mut last_checked_day: NaiveDate = Local::now().date_naive().pred();
     let mut last_checked_day: NaiveDate = Local::now().date_naive();
     let mut interval = interval(Duration::from_secs(86400));
 
@@ -155,7 +154,7 @@ pub async fn happy_birthday(app : Application)
             match dvizh_repo.get_users_by_birthday(&birthday) {
                 Ok(users) => {
                     for user in users {
-                        match dvizh_repo.get_chats_for_user(&user.id) {
+                        match dvizh_repo.get_chats_for_user(&user.username) {
                             Ok(chats) => {
                                 for chat in chats {
                                     send_happy_birthday(&app, &user, chat).await;
@@ -182,11 +181,11 @@ async fn send_happy_birthday(app : &Application, user: &User, chat_id : i64)
     // Formatting the message for the user
     let mut params: HashMap<&str, String> = HashMap::new();
     params.insert("chat_id", chat_id.to_string());
-    params.insert("text", format!("Happy Birthday, {}! (@{})", user.first_name, user.username));
+    params.insert("text", format!("Happy Birthday, {}! (@{})", user.first_name.clone().unwrap_or("unknown".to_string()), user.username));
     // Sending a message to Telegram
     if let Err(e) = send_request(
         &app.cli, &app.conf.tg_token, 
         msg_type_to_str(&MsgType::SendMessage), &params).await {
-        error!("Failed to send birthday message to user {}: {}", user.id, e);
+        error!("Failed to send birthday message to user {}: {}", user.username, e);
     }
 }
