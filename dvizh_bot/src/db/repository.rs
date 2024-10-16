@@ -1,6 +1,8 @@
+use std::fmt::Debug;
+
 use rusqlite::{params, Connection, Result};
 use log::debug;
-use super::db_objects::{Chat, User};
+use super::db_objects::{Chat, Event, User};
 
 #[derive(Debug)]
 pub struct DvizhRepository {
@@ -30,6 +32,21 @@ impl DvizhRepository {
         self.add_chat(chat)?;
         self.add_membership(&user.username, chat_id)?;
         
+        Ok(())
+    }
+
+    pub fn add_or_update_event(&self, event: Event) -> Result<()> {
+        self.connection.execute(
+            "INSERT INTO User (group_id, title, date, description)
+                VALUES (?1, ?2, ?3, ?4)
+                ON CONFLICT(group_id, title) DO UPDATE SET
+                    date = excluded.date,
+                    description = excluded.description",
+            params![event.group_id, event.title, event.date, event.description],
+        )?;
+        
+        debug!("db updated or added event {event:#?}");
+
         Ok(())
     }
 

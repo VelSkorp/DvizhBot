@@ -22,11 +22,11 @@ impl User {
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Chat {
     pub id: i64,
-    pub title: Option<String>
+    pub title: String
 }
 
 impl Chat {
-    pub fn new(id: i64, title: Option<String>) -> Self {
+    pub fn new(id: i64, title: String) -> Self {
         Chat {
             id,
             title
@@ -37,5 +37,24 @@ impl Chat {
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Members {
     pub group_id: i64,
-    pub user_id: i64,
+    pub user_id: i64
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone)]
+pub struct Event {
+    pub group_id: i64,
+    pub title: String,
+    pub date: String,
+    pub description: Option<String>
+}
+
+impl Event {
+    pub fn new(group_id: i64, title: String, date: String, description: Option<String>) -> Self {
+        Event {
+            group_id,
+            title,
+            date,
+            description
+        }
+    }
 }

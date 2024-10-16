@@ -181,7 +181,7 @@ async fn send_happy_birthday(app : &Application, user: &User, chat_id : i64)
     // Formatting the message for the user
     let mut params: HashMap<&str, String> = HashMap::new();
     params.insert("chat_id", chat_id.to_string());
-    params.insert("text", format!("Happy Birthday, {}! (@{})", user.first_name.clone().unwrap_or("unknown".to_string()), user.username));
+    params.insert("text", format!("Happy Birthday, {} @{}", user.first_name.clone().unwrap_or("unknown :(".to_string()), user.username));
     // Sending a message to Telegram
     if let Err(e) = send_request(
         &app.cli, &app.conf.tg_token, 

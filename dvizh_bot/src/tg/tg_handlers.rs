@@ -1,4 +1,4 @@
-use crate::db::db_objects::{Chat, User as DbUser};
+use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::{Message, User};
 use crate::application::Application;
@@ -50,6 +50,10 @@ pub async fn handle_message(app : Application, response_results: &Vec<Value>, of
                 handle_command(offset, command_str_to_type(command), Some(text[1..].to_vec()), &mut req).await?;
                 continue;
             }
+
+            // Update the offset after processing the message if it's not a command
+            let update_id = res["update_id"].as_i64().unwrap();
+            *offset = update_id + 1;
         }
     }
     Ok(())
@@ -73,14 +77,14 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
     if member.is_bot && member.first_name == "DvizhBot" {
         req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
         dvizh_repo.add_chat(
-            Chat::new(chat.id, chat.title)
+            Chat::new(chat.id, chat.title.unwrap_or_default())
         )?;
     }
     else {
         req.set_msg_text(&format!("Welcome {}", member.first_name));
         dvizh_repo.add_or_update_user(
             DbUser::new(member.username, Some(member.first_name), None, member.language_code),
-            Chat::new(chat.id, chat.title)
+            Chat::new(chat.id, chat.title.unwrap_or_default())
         )?;
     }
 
@@ -109,6 +113,17 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
                 handle_set_birthdate_for_command(args[0],None, None, args[1], req)?
             }
         },
+        Some(CommandType::AddEvent) => {
+            let empty_vec = &vec![];
+            let args= command_args.as_ref().unwrap_or(empty_vec);
+            if args.is_empty() || args.len() < 2 {
+                req.set_msg_text("Sorry, I can't remember this event. You didn't specify it.");
+            }
+            else {
+                handle_add_event_command(args, req)?
+            }
+        },
+        Some(CommandType::ListEvents) => handle_hello_command(req),
         None => handle_unknown_command(req),
     }
     send_msg(offset, req).await.map_err(|e| Box::<dyn std::error::Error>::from(e))
@@ -118,6 +133,23 @@ fn handle_hello_command(req: &mut MsgRequest)
 {
     debug!("Hello command was called");
     req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
+}
+
+fn handle_add_event_command(args: &Vec<&str>, req: &mut MsgRequest) -> Result<(), Box<dyn std::error::Error>>
+{
+    debug!("AddEvent command was called");
+    let chat = req.get_msg().unwrap_or_default().chat;
+    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
+    dvizh_repo.add_or_update_event(
+        Event::new(
+            chat.id,
+            args[0].to_string(), 
+            args[1].to_string(), 
+            Some(args[2].to_string()), 
+        )
+    )?;
+    req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
+    Ok(())
 }
 
 fn handle_set_birthdate_command(date: &str, req: &mut MsgRequest) -> Result<(), Box<dyn std::error::Error>> 
@@ -139,7 +171,7 @@ fn handle_set_birthdate_for_command(username: &str, first_name: Option<String>, 
             first_name,
             Some(date.to_string()), 
             language_code),
-        Chat::new(chat.id, chat.title)
+        Chat::new(chat.id, chat.title.unwrap_or_default())
     )?;
     req.set_msg_text(&format!("I memorized this day {date}"));
     Ok(())

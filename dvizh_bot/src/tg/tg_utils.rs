@@ -11,6 +11,8 @@ pub enum CommandType {
     Hello,
     SetBirthdate,
     SetBirthdateFor,
+    AddEvent,
+    ListEvents,
 }
 
 pub fn msg_type_to_str(t: &MsgType) -> &'static str 
@@ -27,6 +29,8 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "hello" => Some(CommandType::Hello),
         "setbirthday" => Some(CommandType::SetBirthdate),
         "setbirthdayfor" => Some(CommandType::SetBirthdateFor),
+        "addevent" => Some(CommandType::AddEvent),
+        "listevents" => Some(CommandType::ListEvents),
         _ => None,
     }
 }
