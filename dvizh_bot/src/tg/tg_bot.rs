@@ -77,7 +77,7 @@ pub async fn send_error_msg(
 pub async fn send_msg(
     offset: &mut i64,
     req : &mut MsgRequest
-) -> Result<serde_json::Value, reqwest::Error> 
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     let msg = req.get_msg().unwrap_or_default();
     let mut params: HashMap<&str, String> = HashMap::new();

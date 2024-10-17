@@ -37,7 +37,7 @@ impl DvizhRepository {
 
     pub fn add_or_update_event(&self, event: Event) -> Result<()> {
         self.connection.execute(
-            "INSERT INTO User (group_id, title, date, description)
+            "INSERT INTO Events (group_id, title, date, description)
                 VALUES (?1, ?2, ?3, ?4)
                 ON CONFLICT(group_id, title) DO UPDATE SET
                     date = excluded.date,
@@ -99,6 +99,27 @@ impl DvizhRepository {
         debug!("db get chats for user {user_id}: {chat_ids:#?}");
     
         Ok(chat_ids)
+    }
+
+    pub fn get_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
+        let mut stmt = self.connection.prepare(
+            "SELECT group_id, title, date, description
+            FROM Events WHERE group_id = ?1"
+        )?;
+        let events = stmt.query_map(params![format!("{}%", group_id)], |row| {
+            Ok(Event {
+                group_id: row.get(0)?,
+                title: row.get(1)?,
+                date: row.get(2)?,
+                description: row.get(3)?,
+            })
+        })?
+        .map(|result| result.unwrap())
+        .collect::<Vec<Event>>();
+        
+        debug!("db get events for chat {group_id}");
+    
+        Ok(events)
     }
 
     fn add_membership(&self, user_id: &str, group_id: i64) -> Result<()> {
