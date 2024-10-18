@@ -88,13 +88,15 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
         )?;
     }
 
-    send_msg(offset, req).await.map_err(|e| Box::<dyn std::error::Error>::from(e))
+    send_msg(offset, req).await?;
+    handle_help_command(offset, req).await
 }
 
 async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, command_args: Option<Vec<&str>>, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     match command_t {
         Some(CommandType::Hello) => handle_hello_command(offset, req).await,
+        Some(CommandType::Help) => handle_help_command(offset, req).await,
         Some(CommandType::SetBirthdate) => {
             if command_args.as_ref().map_or(true, |args| args.is_empty()) {
                 req.set_msg_text("Sorry, I can't remember your birthday. You didn't specify it.");
@@ -135,6 +137,23 @@ async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
 {
     debug!("Hello command was called");
     req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
+    send_msg(offset, req).await
+}
+
+async fn handle_help_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
+{
+    debug!("Help command was called");
+    req.set_msg_text(r#"
+    *Help Menu*:
+    
+    - /hello: Say hello to the bot.
+    - /help: Show this help menu.
+    - /setbirthday [date]: Set your birthdate. (Format: DD.MM.YYYY)
+    - /setbirthdayfor [@username] [date]: Set birthdate for another user. (Format: DD.MM.YYYY)
+    - /addevent [title] [date] [description]: Add a new event to the group. (Date format: DD.MM.YYYY)
+    - /listevents: List all events for this group.
+    
+    "#);
     send_msg(offset, req).await
 }
 
