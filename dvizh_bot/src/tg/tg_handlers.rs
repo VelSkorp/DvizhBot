@@ -95,6 +95,7 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
 async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, command_args: Option<Vec<&str>>, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     match command_t {
+        Some(CommandType::Start) => handle_start_command(offset, req).await,
         Some(CommandType::Hello) => handle_hello_command(offset, req).await,
         Some(CommandType::Help) => handle_help_command(offset, req).await,
         Some(CommandType::SetBirthdate) => {
@@ -136,6 +137,19 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
 async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
     debug!("Hello command was called");
+    req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
+    send_msg(offset, req).await
+}
+
+async fn handle_start_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
+{
+    debug!("Start command was called");
+    let chat = req.get_msg().unwrap_or_default().chat;
+    let user = req.get_msg().unwrap_or_default().from;
+    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;dvizh_repo.add_or_update_user(
+        DbUser::new(user.username, Some(user.first_name), None, user.language_code),
+        Chat::new(chat.id, chat.first_name.unwrap_or_default())
+    )?;
     req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
     send_msg(offset, req).await
 }
