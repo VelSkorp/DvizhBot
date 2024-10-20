@@ -60,7 +60,7 @@ pub async fn handle_message(app : Application, response_results: &Vec<Value>, of
 }
 
 
-async fn handle_error(error: Error, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, reqwest::Error> 
+async fn handle_error(error: Error, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     error!("Handle error: {error}");
     req.set_msg_text(&"Wrong command".to_string());
