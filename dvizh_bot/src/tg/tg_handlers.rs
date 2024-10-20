@@ -95,7 +95,7 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
 async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, command_args: Option<Vec<&str>>, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     match command_t {
-        Some(CommandType::Start) => handle_start_command(offset, req).await,
+        Some(CommandType::Start) => handle_hello_command(offset, req).await,
         Some(CommandType::Hello) => handle_hello_command(offset, req).await,
         Some(CommandType::Help) => handle_help_command(offset, req).await,
         Some(CommandType::SetBirthdate) => {
@@ -136,14 +136,7 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
 
 async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
-    debug!("Hello command was called");
-    req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
-    send_msg(offset, req).await
-}
-
-async fn handle_start_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
-{
-    debug!("Start command was called");
+    debug!("Hello/Start command was called");
     let chat = req.get_msg().unwrap_or_default().chat;
     let user = req.get_msg().unwrap_or_default().from;
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;dvizh_repo.add_or_update_user(
@@ -162,9 +155,9 @@ async fn handle_help_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     
     - /hello: Say hello to the bot.
     - /help: Show this help menu.
-    - /setbirthday [date]: Set your birthdate. (Format: DD.MM.YYYY)
-    - /setbirthdayfor [@username] [date]: Set birthdate for another user. (Format: DD.MM.YYYY)
-    - /addevent [title] [date] [description]: Add a new event to the group. (Date format: DD.MM.YYYY)
+    - /setbirthday [date]: Set your birthdate. (Format: YYYY-MM-DD)
+    - /setbirthdayfor [@username] [date]: Set birthdate for another user. (Format: YYYY-MM-DD)
+    - /addevent [title] [date] [location] [description]: Add a new event to the group. (Date format: YYYY-MM-DD)
     - /listevents: List all events for this group.
     
     "#);
@@ -179,9 +172,10 @@ async fn handle_add_event_command(args: &Vec<&str>, offset: &mut i64, req: &mut 
     dvizh_repo.add_or_update_event(
         Event::new(
             chat.id,
-            args[0].to_string(), 
-            args[1].to_string(), 
-            Some(args[2].to_string()), 
+            args[0].to_string(),
+            args[1].to_string(),
+            args[2].to_string(),
+            args[3..].join(" ")
         )
     )?;
     req.set_msg_text(&format!("I memorized this {} event", args[0]));
@@ -193,24 +187,29 @@ async fn handle_list_events_command(offset: &mut i64, req: &mut MsgRequest) -> R
     debug!("ListEvents command was called");
     let chat = req.get_msg().unwrap_or_default().chat;
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
-    let events = dvizh_repo.get_events_for_chat(chat.id)?;
+    let events = dvizh_repo.get_upcoming_events_for_chat(chat.id)?;
+
+    if events.len() < 1 {
+        req.set_msg_text("There is no upcoming events");
+        return send_msg(offset, req).await;
+    }
 
     req.set_msg_text("Upcoming events:");
     send_msg(offset, req).await?;
 
     let mut i = 0;
-    while i < events.len() - 2 {
+    while i < events.len() - 1 {
         req.set_msg_text(&format!(
-            "📅 *Event Title*: {}\n🗓 *Date*: {}\n📖 *Description*: {:?}\n👥 *Group ID*: {}",
-            events[i].title, events[i].date, events[i].description, events[i].group_id
+            "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
+            events[i].title, events[i].date, events[i].location, events[i].description
         ));
         send_msg(offset, req).await?;
         i += 1;
     }
 
     req.set_msg_text(&format!(
-        "📅 *Event Title*: {}\n🗓 *Date*: {}\n📖 *Description*: {:?}\n👥 *Group ID*: {}",
-        events[i].title, events[i].date, events[i].description, events[i].group_id
+        "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
+        events[i].title, events[i].date, events[i].location, events[i].description
     ));
     send_msg(offset, req).await
 }

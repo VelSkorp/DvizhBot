@@ -44,15 +44,17 @@ pub struct Members {
 pub struct Event {
     pub group_id: i64,
     pub title: String,
+    pub location: String,
     pub date: String,
-    pub description: Option<String>
+    pub description: String
 }
 
 impl Event {
-    pub fn new(group_id: i64, title: String, date: String, description: Option<String>) -> Self {
+    pub fn new(group_id: i64, title: String, location: String, date: String, description: String) -> Self {
         Event {
             group_id,
             title,
+            location,
             date,
             description
         }

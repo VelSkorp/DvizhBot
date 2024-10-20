@@ -21,7 +21,7 @@ impl DvizhRepository {
                 VALUES (?1, ?2, ?3, ?4)
                 ON CONFLICT(username) DO UPDATE SET
                     first_name = CASE WHEN User.first_name IS NULL THEN excluded.first_name ELSE User.first_name END,
-                    birthdate = excluded.birthdate,
+                    birthdate = CASE WHEN User.birthdate IS NOT NULL THEN excluded.birthdate ELSE User.birthdate END,
                     language_code = CASE WHEN User.language_code IS NULL THEN excluded.language_code ELSE User.language_code END",
             params![user.username, user.first_name, user.birthdate, user.language_code],
         )?;
@@ -40,8 +40,8 @@ impl DvizhRepository {
             "INSERT INTO Events (group_id, title, date, description)
                 VALUES (?1, ?2, ?3, ?4)
                 ON CONFLICT(group_id, title) DO UPDATE SET
-                    date = excluded.date,
-                    description = excluded.description",
+                    date = CASE WHEN Events.date IS NOT NULL THEN excluded.date ELSE Events.date END,
+                    description = CASE WHEN Events.description IS NOT NULL THEN excluded.description ELSE Events.description END",
             params![event.group_id, event.title, event.date, event.description],
         )?;
         
@@ -72,12 +72,12 @@ impl DvizhRepository {
             FROM User WHERE birthdate LIKE ?1"
         )?;
         let users = stmt.query_map(params![format!("{}%", birthday)], |row| {
-            Ok(User {
-                username: row.get(0)?,
-                first_name: row.get(1)?,
-                birthdate: row.get(2)?,
-                language_code: row.get(3)?,
-            })
+            Ok(User::new(
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+            ))
         })?
         .map(|result| result.unwrap())
         .collect::<Vec<User>>();
@@ -101,24 +101,24 @@ impl DvizhRepository {
         Ok(chat_ids)
     }
 
-    pub fn get_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
+    pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
         let mut stmt = self.connection.prepare(
-            "SELECT group_id, title, date, description
-            FROM Events WHERE group_id = ?1"
+            "SELECT group_id, title, location, date, description
+            FROM Events WHERE group_id = ?1 AND date >= strftime('%d.%m.%Y', 'now')"
         )?;
-        let events = stmt.query_map(params![format!("{}%", group_id)], |row| {
-            Ok(Event {
-                group_id: row.get(0)?,
-                title: row.get(1)?,
-                date: row.get(2)?,
-                description: row.get(3)?,
-            })
+        let events = stmt.query_map(params![group_id], |row| {
+            Ok(Event::new(
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?))
         })?
         .map(|result| result.unwrap())
         .collect::<Vec<Event>>();
-        
-        debug!("db get events for chat {group_id}");
-    
+
+        debug!("db get events for chat {group_id}: {events:#?}");
+
         Ok(events)
     }
 
