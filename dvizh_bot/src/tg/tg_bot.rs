@@ -1,5 +1,5 @@
 use crate::application::Application;
-use crate::db::db_objects::User;
+use crate::db::db_objects::{Event, User};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_utils::{MsgType, msg_type_to_str};
 use crate::tg::tg_handlers::handle_message;
@@ -12,7 +12,7 @@ use serde_json::Value;
 use log::{debug, error};
 
 #[derive(Debug)]
-pub struct MsgRequest{
+pub struct MsgRequest {
     pub app: Application,
     pub update_id: i64,
     pub method: MsgType,
@@ -44,8 +44,7 @@ pub async fn send_request(
     api_token: &str,
     method: &str,
     params: &HashMap<&str, String>,
-) -> Result<serde_json::Value, reqwest::Error> 
-{
+) -> Result<serde_json::Value, reqwest::Error> {
     let mut url = String::new();
     url.push_str("https://api.telegram.org/bot");
     url.push_str(api_token);
@@ -125,7 +124,7 @@ pub async fn run(app : Application, t: &MsgType)
     }
 }
 
-pub async fn happy_birthday(app : Application)
+pub async fn check_and_perform_daily_operations(app : Application)
 {
     // Store the date of the last execution
     let mut last_checked_day: NaiveDate = Local::now().date_naive();
@@ -150,29 +149,67 @@ pub async fn happy_birthday(app : Application)
                     continue;
                 }
             };
-            let birthday = format!("{:02}.{:02}", current_day.day(), current_day.month());
-            match dvizh_repo.get_users_by_birthday(&birthday) {
-                Ok(users) => {
-                    for user in users {
-                        match dvizh_repo.get_chats_for_user(&user.username) {
-                            Ok(chats) => {
-                                for chat in chats {
-                                    send_happy_birthday(&app, &user, chat).await;
-                                }
-                            },
-                            Err(e) => {
-                                error!("Failed to get chats for user {user:#?}: {e}");
-                            }
-                        }
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to get users with birthdays: {e}");
-                }
-            }
 
+            let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
+            perform_happy_birthday(&app, &dvizh_repo, &day).await;
+            perform_events_reminder(&app, &dvizh_repo).await;
+            
             last_checked_day = current_day;
         }
+    }
+}
+
+async fn perform_happy_birthday(app : &Application, dvizh_repo: &DvizhRepository, birthday: &str)
+{
+    match dvizh_repo.get_users_by_birthday(&birthday) {
+        Ok(users) => {
+            for user in users {
+                match dvizh_repo.get_chats_for_user(&user.username) {
+                    Ok(chats) => {
+                        for chat in chats {
+                            send_happy_birthday(&app, &user, chat).await;
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to get chats for user {user:#?}: {e}");
+                    }
+                }
+            }
+        },
+        Err(e) => {
+            error!("Failed to get users with birthdays: {e}");
+        }
+    }
+}
+
+async fn perform_events_reminder(app : &Application, dvizh_repo: &DvizhRepository)
+{
+    match dvizh_repo.get_today_events() {
+        Ok(events) => {
+            for event in events {
+                reminde_events(&app, &event).await;
+            }
+        },
+        Err(e) => {
+            error!("Failed to get users with birthdays: {e}");
+        }
+    }
+}
+
+async fn reminde_events(app : &Application, event: &Event)
+{
+    // Formatting the message for the user
+    let mut params: HashMap<&str, String> = HashMap::new();
+    params.insert("chat_id", event.group_id.to_string());
+    params.insert("text", format!(
+        "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
+        event.title, event.date, event.location, event.description
+    ));
+    // Sending a message to Telegram
+    if let Err(e) = send_request(
+        &app.cli, &app.conf.tg_token, 
+        msg_type_to_str(&MsgType::SendMessage), &params).await {
+        error!("Failed to send event message to chat {}: {}", event.group_id, e);
     }
 }
 

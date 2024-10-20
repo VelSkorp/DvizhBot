@@ -1,22 +1,25 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::{Arc, Mutex}};
 
+use chrono::Local;
 use rusqlite::{params, Connection, Result};
 use log::debug;
 use super::db_objects::{Chat, Event, User};
 
 #[derive(Debug)]
 pub struct DvizhRepository {
-    connection: Connection
+    connection: Arc<Mutex<Connection>>
 }
 
 impl DvizhRepository {
     pub fn new(db_path: &str) -> Result<Self> {
-        let connection = Connection::open(db_path)?;
-        Ok(DvizhRepository { connection })
+        let conn = Connection::open(db_path)?;
+        Ok(DvizhRepository {
+            connection: Arc::new(Mutex::new(conn)),
+        })
     }
 
     pub fn add_or_update_user(&self, user: User, chat: Chat) -> Result<()> {
-        self.connection.execute(
+        self.connection.lock().unwrap().execute(
             "INSERT INTO User (username, first_name, birthdate, language_code)
                 VALUES (?1, ?2, ?3, ?4)
                 ON CONFLICT(username) DO UPDATE SET
@@ -36,7 +39,7 @@ impl DvizhRepository {
     }
 
     pub fn add_or_update_event(&self, event: Event) -> Result<()> {
-        self.connection.execute(
+        self.connection.lock().unwrap().execute(
             "INSERT INTO Events (group_id, title, date, description)
                 VALUES (?1, ?2, ?3, ?4)
                 ON CONFLICT(group_id, title) DO UPDATE SET
@@ -51,7 +54,7 @@ impl DvizhRepository {
     }
 
     pub fn add_chat(&self, chat: Chat) -> Result<()> {
-        self.connection.execute(
+        self.connection.lock().unwrap().execute(
             "INSERT INTO Chat (id, title)
             VALUES (?1, ?2)
             ON CONFLICT(id) DO NOTHING",
@@ -64,7 +67,8 @@ impl DvizhRepository {
     }
 
     pub fn get_users_by_birthday(&self, birthday: &str) -> Result<Vec<User>> {
-        let mut stmt = self.connection.prepare(
+        let conn = self.connection.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT username,
                 first_name,
                 birthdate,
@@ -88,7 +92,8 @@ impl DvizhRepository {
     }
 
     pub fn get_chats_for_user(&self, user_id: &str) -> Result<Vec<i64>> {
-        let mut stmt = self.connection.prepare(
+        let conn = self.connection.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT group_id FROM Members WHERE user_id = ?1",
         )?;
         
@@ -102,7 +107,8 @@ impl DvizhRepository {
     }
 
     pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
-        let mut stmt = self.connection.prepare(
+        let conn = self.connection.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT group_id, title, location, date, description
             FROM Events WHERE group_id = ?1 AND date >= strftime('%d.%m.%Y', 'now')"
         )?;
@@ -122,8 +128,31 @@ impl DvizhRepository {
         Ok(events)
     }
 
+    pub fn get_today_events(&self) -> Result<Vec<Event>> {
+        let conn = self.connection.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT group_id, title, location, date, description
+            FROM Events WHERE date = strftime('%d.%m.%Y', 'now')"
+        )?;
+        let users = stmt.query_map([], |row| {
+            Ok(Event::new(
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+            ))
+        })?
+        .map(|result| result.unwrap())
+        .collect::<Vec<Event>>();
+
+        debug!("db get events by today {}: {:#?}", Local::now().date_naive(), users);
+
+        Ok(users)
+    }
+
     fn add_membership(&self, user_id: &str, group_id: i64) -> Result<()> {
-        self.connection.execute(
+        self.connection.lock().unwrap().execute(
             "INSERT INTO Members (group_id, user_id)
             VALUES (?1, ?2)
             ON CONFLICT(group_id, user_id) DO NOTHING",
