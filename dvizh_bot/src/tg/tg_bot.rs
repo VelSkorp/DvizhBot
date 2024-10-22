@@ -87,6 +87,22 @@ pub async fn send_msg(
     send_msg_internal(offset, req, params).await
 }
 
+pub async fn send_photo(
+    photo_url: &str,
+    photo_tite: &str,
+    offset: &mut i64,
+    req : &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let msg = req.get_msg()?;
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("photo", photo_url.to_string());
+    params.insert("caption", photo_tite.to_string());
+    req.method = MsgType::SendPhoto;
+
+    send_msg_internal(offset, req, params).await
+}
+
 pub async fn run(app : Application, t: &MsgType) {
     // Set the initial offset to 0
     let mut offset: i64 = 0;

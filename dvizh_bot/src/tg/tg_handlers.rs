@@ -2,8 +2,9 @@ use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::{Message, User};
 use crate::application::Application;
-use crate::tg::tg_bot::{send_msg, send_error_msg, MsgRequest};
+use crate::tg::tg_bot::{send_msg, send_photo, send_error_msg, MsgRequest};
 use crate::tg::tg_utils::{CommandType, command_str_to_type, find_chat_id, MsgType};
+use reqwest::Client;
 use serde_json::{Error, Value};
 use log::{debug, warn, error};
 
@@ -130,6 +131,7 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
             }
         },
         Some(CommandType::ListEvents) => handle_list_events_command(offset, req).await,
+        Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         None => handle_unknown_command(offset, req).await,
     }
 }
@@ -161,6 +163,31 @@ async fn handle_help_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     - /listevents: List all events for this group.
     
     "#);
+    send_msg(offset, req).await
+}
+
+async fn handle_set_birthdate_command(date: &str, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
+{
+    debug!("SetBirthdate command was called with {date}");
+    let user = req.get_msg().unwrap_or_default().from;
+    handle_set_birthdate_for_command(&user.username, Some(user.first_name), user.language_code, date, offset, req).await
+}
+
+async fn handle_set_birthdate_for_command(username: &str, first_name: Option<String>, language_code: Option<String>, date: &str, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
+{
+    debug!("SetBirthdateFor command was called with {date}");
+    let usr = username.replace("@", "");
+    let chat = req.get_msg().unwrap_or_default().chat;
+    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
+    dvizh_repo.add_or_update_user(
+        DbUser::new(
+            usr, 
+            first_name,
+            Some(date.to_string()), 
+            language_code),
+        Chat::new(chat.id, chat.title.unwrap_or_default())
+    )?;
+    req.set_msg_text(&format!("I memorized this day {date}"));
     send_msg(offset, req).await
 }
 
@@ -214,29 +241,21 @@ async fn handle_list_events_command(offset: &mut i64, req: &mut MsgRequest) -> R
     send_msg(offset, req).await
 }
 
-async  fn handle_set_birthdate_command(date: &str, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
+async fn handle_meme_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
-    debug!("SetBirthdate command was called with {date}");
-    let user = req.get_msg().unwrap_or_default().from;
-    handle_set_birthdate_for_command(&user.username, Some(user.first_name), user.language_code, date, offset, req).await
-}
+    debug!("Meme command was called");
 
-async fn handle_set_birthdate_for_command(username: &str, first_name: Option<String>, language_code: Option<String>, date: &str, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
-{
-    debug!("SetBirthdateFor command was called with {date}");
-    let usr = username.replace("@", "");
-    let chat = req.get_msg().unwrap_or_default().chat;
-    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
-    dvizh_repo.add_or_update_user(
-        DbUser::new(
-            usr, 
-            first_name,
-            Some(date.to_string()), 
-            language_code),
-        Chat::new(chat.id, chat.title.unwrap_or_default())
-    )?;
-    req.set_msg_text(&format!("I memorized this day {date}"));
-    send_msg(offset, req).await
+    // Fetch random meme from Meme API (which pulls memes from Reddit)
+    let meme_api_url = "https://meme-api.com/gimme/russian_memes_only";
+    let client = Client::new();
+    let response = client.get(meme_api_url).send().await?;
+    let body: Value = response.json().await?;
+    
+    // Extract the meme's image URL
+    let meme_url = body["url"].as_str().unwrap();
+    let meme_title = body["title"].as_str().unwrap();
+
+    send_photo(meme_url, meme_title, offset, req).await
 }
 
 async fn handle_unknown_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>

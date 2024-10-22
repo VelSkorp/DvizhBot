@@ -5,6 +5,7 @@ pub enum MsgType {
     GetMe,
     GetUpdates,
     SendMessage,
+    SendPhoto,
 }
 
 pub enum CommandType {
@@ -15,6 +16,7 @@ pub enum CommandType {
     SetBirthdateFor,
     AddEvent,
     ListEvents,
+    Meme,
 }
 
 pub fn msg_type_to_str(t: &MsgType) -> &'static str 
@@ -23,6 +25,7 @@ pub fn msg_type_to_str(t: &MsgType) -> &'static str
         MsgType::GetMe => "getMe",
         MsgType::GetUpdates => "getUpdates",
         MsgType::SendMessage => "sendMessage",
+        MsgType::SendPhoto => "sendPhoto",
     }
 }
 
@@ -35,6 +38,7 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "setbirthdayfor" => Some(CommandType::SetBirthdateFor),
         "addevent" => Some(CommandType::AddEvent),
         "listevents" => Some(CommandType::ListEvents),
+        "meme" => Some(CommandType::Meme),
         _ => None,
     }
 }
