@@ -44,11 +44,12 @@ pub async fn handle_message(app : Application, response_results: &Vec<Value>, of
                     handle_command(offset, None, None, &mut req).await?;
                     continue;
                 }
-                let msg_text = req.get_msg_text();
-                let text = msg_text[1..].split_whitespace().collect::<Vec<&str>>();
-                let command = text[0].split('@').next().unwrap();
+                let msg_text = &req.get_msg_text()[1..];
+                let mut text = parse_command_arguments(msg_text);
+                let command_str = text.remove(0);
+                let command = command_str.split('@').next().unwrap().trim();
                 debug!("Handle {} command", command);
-                handle_command(offset, command_str_to_type(command), Some(text[1..].to_vec()), &mut req).await?;
+                handle_command(offset, command_str_to_type(command), Some(text), &mut req).await?;
                 continue;
             }
 
@@ -60,6 +61,33 @@ pub async fn handle_message(app : Application, response_results: &Vec<Value>, of
     Ok(())
 }
 
+fn parse_command_arguments(msg_text: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current_arg = String::new();
+    let mut in_quotes = false;
+
+    for c in msg_text.chars() {
+        match c {
+            '"' => {
+                in_quotes = !in_quotes;
+            }
+            ' ' if !in_quotes => {
+                if !current_arg.is_empty() {
+                    args.push(current_arg.trim().to_string());
+                    current_arg.clear();
+                }
+            }
+            _ => {
+                current_arg.push(c);
+            }
+        }
+    }
+    if !current_arg.is_empty() {
+        args.push(current_arg.trim().to_string());
+    }
+
+    args
+}
 
 async fn handle_error(error: Error, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
@@ -93,7 +121,7 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
     handle_help_command(offset, req).await
 }
 
-async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, command_args: Option<Vec<&str>>, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
+async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, command_args: Option<Vec<String>>, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     match command_t {
         Some(CommandType::Start) => handle_hello_command(offset, req).await,
@@ -105,7 +133,7 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
                 send_msg(offset, req).await
             }
             else {
-                handle_set_birthdate_command(command_args.unwrap()[0], offset, req).await
+                handle_set_birthdate_command(&command_args.unwrap()[0], offset, req).await
             }
         },
         Some(CommandType::SetBirthdateFor) => {
@@ -116,13 +144,13 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
                 send_msg(offset, req).await
             }
             else {
-                handle_set_birthdate_for_command(args[0],None, None, args[1], offset, req).await
+                handle_set_birthdate_for_command(&args[0],None, None, &args[1], offset, req).await
             }
         },
         Some(CommandType::AddEvent) => {
             let empty_vec = &vec![];
             let args= command_args.as_ref().unwrap_or(empty_vec);
-            if args.is_empty() || args.len() < 2 {
+            if args.is_empty() || args.len() < 4 {
                 req.set_msg_text("Sorry, I can't remember this event. You didn't specify it.");
                 send_msg(offset, req).await
             }
@@ -157,9 +185,9 @@ async fn handle_help_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     
     - /hello: Say hello to the bot.
     - /help: Show this help menu.
-    - /setbirthday [date]: Set your birthdate. (Format: YYYY-MM-DD)
-    - /setbirthdayfor [@username] [date]: Set birthdate for another user. (Format: YYYY-MM-DD)
-    - /addevent [title] [date] [location] [description]: Add a new event to the group. (Date format: YYYY-MM-DD)
+    - /setbirthday "[date]": Set your birthdate. (Format: YYYY-MM-DD)
+    - /setbirthdayfor "[@username]" "[date]": Set birthdate for another user. (Format: YYYY-MM-DD)
+    - /addevent "[title]" "[date]" "[location]" "[description]": Add a new event to the group. (Date format: YYYY-MM-DD)
     - /listevents: List all events for this group.
     
     "#);
@@ -191,18 +219,19 @@ async fn handle_set_birthdate_for_command(username: &str, first_name: Option<Str
     send_msg(offset, req).await
 }
 
-async fn handle_add_event_command(args: &Vec<&str>, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
+async fn handle_add_event_command(args: &Vec<String>, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
     debug!("AddEvent command was called");
     let chat = req.get_msg().unwrap_or_default().chat;
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
+
     dvizh_repo.add_or_update_event(
         Event::new(
             chat.id,
             args[0].to_string(),
             args[1].to_string(),
             args[2].to_string(),
-            args[3..].join(" ")
+            args[3].to_string()
         )
     )?;
     req.set_msg_text(&format!("I memorized this {} event", args[0]));

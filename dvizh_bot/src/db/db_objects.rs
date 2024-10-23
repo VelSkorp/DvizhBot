@@ -50,7 +50,7 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn new(group_id: i64, title: String, location: String, date: String, description: String) -> Self {
+    pub fn new(group_id: i64, title: String, date: String, location: String, description: String) -> Self {
         Event {
             group_id,
             title,

@@ -40,12 +40,13 @@ impl DvizhRepository {
 
     pub fn add_or_update_event(&self, event: Event) -> Result<()> {
         self.connection.lock().unwrap().execute(
-            "INSERT INTO Events (group_id, title, date, description)
-                VALUES (?1, ?2, ?3, ?4)
+            "INSERT INTO Events (group_id, title, date, location, description)
+                VALUES (?1, ?2, ?3, ?4, ?5)
                 ON CONFLICT(group_id, title) DO UPDATE SET
                     date = CASE WHEN Events.date IS NOT NULL THEN excluded.date ELSE Events.date END,
+                    location = CASE WHEN Events.location IS NOT NULL THEN excluded.location ELSE Events.location END,
                     description = CASE WHEN Events.description IS NOT NULL THEN excluded.description ELSE Events.description END",
-            params![event.group_id, event.title, event.date, event.description],
+            params![event.group_id, event.title, event.date, event.location, event.description],
         )?;
         
         debug!("db updated or added event {event:#?}");
@@ -109,7 +110,7 @@ impl DvizhRepository {
     pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT group_id, title, location, date, description
+            "SELECT group_id, title, date, location, description
             FROM Events WHERE group_id = ?1 AND date >= strftime('%d.%m.%Y', 'now')"
         )?;
         let events = stmt.query_map(params![group_id], |row| {
