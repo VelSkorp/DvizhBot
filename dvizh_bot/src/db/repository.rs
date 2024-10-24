@@ -24,7 +24,7 @@ impl DvizhRepository {
                 VALUES (?1, ?2, ?3, ?4)
                 ON CONFLICT(username) DO UPDATE SET
                     first_name = CASE WHEN User.first_name IS NULL THEN excluded.first_name ELSE User.first_name END,
-                    birthdate = CASE WHEN User.birthdate IS NOT NULL THEN excluded.birthdate ELSE User.birthdate END,
+                    birthdate = CASE WHEN excluded.birthdate IS NOT NULL THEN excluded.birthdate ELSE User.birthdate END,
                     language_code = CASE WHEN User.language_code IS NULL THEN excluded.language_code ELSE User.language_code END",
             params![user.username, user.first_name, user.birthdate, user.language_code],
         )?;

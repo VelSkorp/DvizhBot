@@ -5,7 +5,7 @@ use crate::tg::tg_utils::{MsgType, msg_type_to_str};
 use crate::tg::tg_handlers::handle_message;
 use crate::tg::tg_objects::Message;
 use chrono::{Datelike, Local, NaiveDate};
-use tokio::time::{interval, Duration};
+use tokio::time::{sleep, Duration};
 use std::collections::HashMap;
 use reqwest::Client;
 use log::{debug, error};
@@ -133,34 +133,29 @@ pub async fn run(app : Application, t: &MsgType) {
     }
 }
 
-pub async fn check_and_perform_daily_operations(app : Application)
-{
-    // Store the date of the last execution
-    let mut last_checked_day: NaiveDate = Local::now().date_naive();
-    let mut interval = interval(Duration::from_secs(86400));
-
+pub async fn check_and_perform_daily_operations(app : Application) {
     loop {
-        // Wait until the next timer is triggered
-        interval.tick().await;
+        // Get the current date and time
+        let now = Local::now();
+        let current_day: NaiveDate = now.date_naive();
 
-        // Get the current day
-        let current_day: NaiveDate = Local::now().date_naive();
+        // Calculate the time until midnight (00:00 of the next day)
+        let next_midnight = now.date_naive().succ_opt().unwrap().and_hms_opt(0, 0, 0).unwrap();
+        let time_until_midnight = next_midnight.signed_duration_since(now.naive_local());
 
-        // Checking to see if the new day
-        if last_checked_day != current_day {
-            debug!("New day detected, performing daily operations.");
+        // Sleep until midnight
+        sleep(Duration::from_secs(time_until_midnight.num_seconds() as u64)).await;
 
-            // If the date has changed, send a message}
-            if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
-                let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
-                perform_happy_birthday(&app, &dvizh_repo, &day).await;
-                perform_events_reminder(&app, &dvizh_repo).await;
-            } else {
-                error!("Failed to connect to DvizhRepository.");
-            }
+        // After waking up, it's the new day, perform daily operations
+        debug!("New day detected (00:00), performing daily operations.");
 
-            
-            last_checked_day = current_day;
+        // If the date has changed, send a message}
+        if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
+            let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
+            perform_happy_birthday(&app, &dvizh_repo, &day).await;
+            perform_events_reminder(&app, &dvizh_repo).await;
+        } else {
+            error!("Failed to connect to DvizhRepository.");
         }
     }
 }
