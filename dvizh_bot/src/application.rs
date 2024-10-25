@@ -1,5 +1,6 @@
 use crate::args;
 use crate::bot_config;
+use crate::LanguageCache;
 use bot_config::BotConfig;
 use clap::Parser;
 use args::Verbose;
@@ -16,11 +17,13 @@ pub struct Application {
     pub conf: BotConfig,
     pub args: Arguments,
     pub log_level: &'static str,
+    pub language_cache: LanguageCache
 }
 
 impl Application {
     pub fn init() -> Result<Self, Box<dyn Error>> {
         let cli = Client::new();
+        let language_cache = LanguageCache::new();
         let conf = bot_config::load_config();
         let args = args::Arguments::parse();
 
@@ -39,6 +42,6 @@ impl Application {
 
         debug!("Args: {}", arg_line);
 
-        Ok(Application { cli, conf, args, log_level })
+        Ok(Application { cli, conf, args, log_level, language_cache })
     }
 }

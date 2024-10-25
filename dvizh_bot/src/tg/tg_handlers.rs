@@ -106,14 +106,14 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
         req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
         dvizh_repo.add_chat(
-            Chat::new(chat.id, chat.title.unwrap_or_default())
+            Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
         )?;
     }
     else {
         req.set_msg_text(&format!("Welcome {}", member.first_name));
         dvizh_repo.add_or_update_user(
             DbUser::new(member.username, Some(member.first_name), None, member.language_code),
-            Chat::new(chat.id, chat.title.unwrap_or_default())
+            Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
         )?;
     }
 
@@ -124,7 +124,7 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
 async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, command_args: Option<Vec<String>>, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     match command_t {
-        Some(CommandType::Start) => handle_hello_command(offset, req).await,
+        Some(CommandType::Start) => handle_start_command(offset, req).await,
         Some(CommandType::Hello) => handle_hello_command(offset, req).await,
         Some(CommandType::Help) => handle_help_command(offset, req).await,
         Some(CommandType::SetBirthdate) => {
@@ -166,15 +166,22 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
 
 async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
-    debug!("Hello/Start command was called");
-    let chat = req.get_msg().unwrap_or_default().chat;
-    let user = req.get_msg().unwrap_or_default().from;
-    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;dvizh_repo.add_or_update_user(
-        DbUser::new(user.username, Some(user.first_name), None, user.language_code),
-        Chat::new(chat.id, chat.first_name.unwrap_or_default())
-    )?;
+    debug!("Hello command was called");
     req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
     send_msg(offset, req).await
+}
+
+async fn handle_start_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
+{
+    debug!("Start command was called");
+    let chat = req.get_msg().unwrap_or_default().chat;
+    let user = req.get_msg().unwrap_or_default().from;
+    let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
+    dvizh_repo.add_or_update_user(
+        DbUser::new(user.username, Some(user.first_name), None, user.language_code),
+        Chat::new(chat.id, chat.first_name.unwrap_or_default(), "en".to_string())
+    )?;
+    handle_hello_command(offset, req).await
 }
 
 async fn handle_help_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
@@ -213,7 +220,7 @@ async fn handle_set_birthdate_for_command(username: &str, first_name: Option<Str
             first_name,
             Some(date.to_string()), 
             language_code),
-        Chat::new(chat.id, chat.title.unwrap_or_default())
+        Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
     )?;
     req.set_msg_text(&format!("I memorized this day {date}"));
     send_msg(offset, req).await

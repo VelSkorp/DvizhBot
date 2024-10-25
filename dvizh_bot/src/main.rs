@@ -12,6 +12,9 @@ mod db {
 }
 mod application;
 mod errors;
+mod translations{
+    pub mod language_cache;
+}
 
 pub use bot_config::BotConfig;
 use tg::tg_bot::check_and_perform_daily_operations;
@@ -19,6 +22,7 @@ pub use std::error::Error;
 pub use tg::tg_utils::MsgType;
 pub use tg::tg_bot::run;
 pub use application::Application;
+pub use translations::language_cache::LanguageCache;
  
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

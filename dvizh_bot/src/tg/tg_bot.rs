@@ -144,7 +144,7 @@ pub async fn check_and_perform_daily_operations(app : Application) {
         let time_until_midnight = next_midnight.signed_duration_since(now.naive_local());
 
         // Sleep until midnight
-        sleep(Duration::from_secs(time_until_midnight.num_seconds() as u64)).await;
+        sleep(Duration::from_secs(time_until_midnight.num_seconds() as u64 + 60)).await;
 
         // After waking up, it's the new day, perform daily operations
         debug!("New day detected (00:00), performing daily operations.");

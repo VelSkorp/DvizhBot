@@ -152,6 +152,20 @@ impl DvizhRepository {
         Ok(users)
     }
 
+    pub fn get_chat_language_code(&self, group_id: i64) -> Result<String> {
+        let conn = self.connection.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT language_code FROM Chat WHERE id = ?1"
+        )?;
+        let code = stmt.query_row(params![group_id], |row| {
+            row.get(0).or(Ok("en".to_string()))
+        }).unwrap_or_else(|_| "en".to_string());
+
+        debug!("db get chat language code: {}", code);
+
+        Ok(code)
+    }
+
     fn add_membership(&self, user_id: &str, group_id: i64) -> Result<()> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO Members (group_id, user_id)

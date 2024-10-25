@@ -22,14 +22,16 @@ impl User {
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Chat {
     pub id: i64,
-    pub title: String
+    pub title: String,
+    pub language_code: String
 }
 
 impl Chat {
-    pub fn new(id: i64, title: String) -> Self {
+    pub fn new(id: i64, title: String, language_code: String) -> Self {
         Chat {
             id,
-            title
+            title,
+            language_code
         }
     }
 }
