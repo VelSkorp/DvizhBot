@@ -107,6 +107,21 @@ impl DvizhRepository {
         Ok(chat_ids)
     }
 
+    pub fn get_all_chat_ids(&self) -> Result<Vec<i64>> {
+        let conn = self.connection.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT group_id FROM Chat",
+        )?;
+        
+        let chat_ids = stmt.query_map([], |row| row.get(0))?
+            .map(|result| result.unwrap())
+            .collect::<Vec<i64>>();
+        
+        debug!("db get all chat ids: {chat_ids:#?}");
+    
+        Ok(chat_ids)
+    }
+
     pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare(

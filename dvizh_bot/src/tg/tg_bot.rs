@@ -4,8 +4,8 @@ use crate::db::repository::DvizhRepository;
 use crate::tg::tg_utils::{MsgType, msg_type_to_str};
 use crate::tg::tg_handlers::handle_message;
 use crate::tg::tg_objects::Message;
-use chrono::{Datelike, Local, NaiveDate};
-use tokio::time::{sleep, Duration};
+use chrono::{Datelike, Local};
+use tokio::time::{interval_at, Duration, Instant};
 use std::collections::HashMap;
 use reqwest::Client;
 use log::{debug, error};
@@ -134,30 +134,63 @@ pub async fn run(app : Application, t: &MsgType) {
 }
 
 pub async fn check_and_perform_daily_operations(app : Application) {
+    // Execution time at 00:00
+    let now = Local::now();
+    let midnight = now.date_naive().succ_opt().unwrap().and_hms_opt(0, 0, 0);
+    let time_until_midnight = (midnight.unwrap_or_default() - now.naive_local()).num_seconds() as u64;
+    
+    // Running intervals
+    let mut midnight_interval = interval_at(
+        Instant::now() + Duration::from_secs(time_until_midnight),
+        Duration::from_secs(24 * 3600),
+    );
+    
+    let mut morning_interval = interval_at(
+        Instant::now() + Duration::from_secs(calc_seconds_until(8, 0, 0)),
+        Duration::from_secs(24 * 3600),
+    );
+
+    let mut evening_interval = interval_at(
+        Instant::now() + Duration::from_secs(calc_seconds_until(22, 0, 0)),
+        Duration::from_secs(24 * 3600),
+    );
+
     loop {
-        // Get the current date and time
-        let now = Local::now();
-        let current_day: NaiveDate = now.date_naive();
+        tokio::select! {
+            _ = midnight_interval.tick() => {
+                if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
+                    let current_day = Local::now().date_naive();
+                    let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
+                    debug!("Performing daily operations at midnight.");
 
-        // Calculate the time until midnight (00:00 of the next day)
-        let next_midnight = now.date_naive().succ_opt().unwrap().and_hms_opt(0, 0, 0).unwrap();
-        let time_until_midnight = next_midnight.signed_duration_since(now.naive_local());
+                    perform_happy_birthday(&app, &dvizh_repo, &day).await;
+                    perform_events_reminder(&app, &dvizh_repo).await;
+                } else {
+                    error!("Failed to connect to DvizhRepository.");
+                }
+            }
 
-        // Sleep until midnight
-        sleep(Duration::from_secs(time_until_midnight.num_seconds() as u64 + 60)).await;
+            _ = morning_interval.tick() => {
+                send_daily_greeting(&app, "Доброе утро! 🌅").await;
+            }
 
-        // After waking up, it's the new day, perform daily operations
-        debug!("New day detected (00:00), performing daily operations.");
-
-        // If the date has changed, send a message}
-        if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
-            let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
-            perform_happy_birthday(&app, &dvizh_repo, &day).await;
-            perform_events_reminder(&app, &dvizh_repo).await;
-        } else {
-            error!("Failed to connect to DvizhRepository.");
+            _ = evening_interval.tick() => {
+                send_daily_greeting(&app, "Спокойной ночи! 🌙").await;
+            }
         }
     }
+}
+
+// Function for calculating the time to the next specific time in seconds
+fn calc_seconds_until(target_hour: u32, target_minute: u32, target_second: u32) -> u64 {
+    let now = Local::now();
+    let target_time = now.date_naive().and_hms_opt(target_hour, target_minute, target_second).unwrap();
+    let duration = if now.time() < target_time.time() {
+        target_time - now.naive_local()
+    } else {
+        target_time + chrono::Duration::days(1) - now.naive_local()
+    };
+    duration.num_seconds() as u64
 }
 
 async fn perform_happy_birthday(app : &Application, dvizh_repo: &DvizhRepository, birthday: &str)
@@ -216,5 +249,29 @@ async fn send_happy_birthday(app : &Application, user: &User, chat_id : i64)
         &app.cli, &app.conf.tg_token, 
         msg_type_to_str(&MsgType::SendMessage), &params).await {
         error!("Failed to send birthday message to user {}: {}", user.username, e);
+    }
+}
+
+async fn send_daily_greeting(app: &Application, message: &str) {
+    if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
+        if let Ok(chats) = dvizh_repo.get_all_chat_ids() {
+            for chat_id in chats {
+                let mut params = HashMap::new();
+                params.insert("chat_id", chat_id.to_string());
+                params.insert("text", message.to_string());
+
+                if let Err(e) = send_request(
+                    &app.cli,
+                    &app.conf.tg_token,
+                    msg_type_to_str(&MsgType::SendMessage),
+                    &params,
+                ).await {
+                    error!("Failed to send daily greeting to chat {}: {}", chat_id, e);
+                }
+            }
+            debug!("Sent daily greeting: {}", message);
+        } else {
+            error!("Failed to retrieve chat IDs for daily greetings.");
+        }
     }
 }
