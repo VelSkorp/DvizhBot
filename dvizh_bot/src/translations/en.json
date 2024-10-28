@@ -1,7 +1,7 @@
 {
     "welcome": "Welcome",
     "hello": "Hello, I'm a bot of Dvizh Wrocław🔥",
-    "help": "*Help Menu*:\n\n\t- /hello: Say hello to the bot.\n\t- /help: Show this help menu.\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: YYYY-MM-DD)\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: YYYY-MM-DD)\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: YYYY-MM-DD)\n\t- /listevents: List all events for this group.\n\t- /meme: Send radnom mem from reddit.",
+    "help": "*Help Menu*:\n\r\n\t- /hello: Say hello to the bot.\r\n\t- /help: Show this help menu.\r\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: YYYY-MM-DD)\r\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: YYYY-MM-DD)\r\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: YYYY-MM-DD)\r\n\t- /listevents: List all events for this group.\r\n\t- /meme: Send radnom mem from reddit.",
     "remeber_birthday": "I memorized this day",
     "error_birthday": "Sorry, I can't remember your birthday. You didn't specify it.",
     "error_birthday_for": "Sorry, I can't remember his/her birthday. You didn't specify it.",
