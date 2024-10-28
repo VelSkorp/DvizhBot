@@ -110,7 +110,7 @@ impl DvizhRepository {
     pub fn get_all_chat_ids(&self) -> Result<Vec<i64>> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT group_id FROM Chat",
+            "SELECT id FROM Chat",
         )?;
         
         let chat_ids = stmt.query_map([], |row| row.get(0))?

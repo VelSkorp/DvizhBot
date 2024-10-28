@@ -92,7 +92,8 @@ fn parse_command_arguments(msg_text: &str) -> Vec<String> {
 async fn handle_error(error: Error, offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>> 
 {
     error!("Handle error: {error}");
-    req.set_msg_text(&"Wrong command".to_string());
+    let text = req.get_translation_for("wrong")?; 
+    req.set_msg_text(text);
     send_error_msg(offset, req.get_msg().unwrap().chat.id, req).await
 }
 
@@ -104,13 +105,15 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
 
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
-        req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
+        let text = req.get_translation_for("hello")?;
+        req.set_msg_text(text);
         dvizh_repo.add_chat(
             Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
         )?;
     }
     else {
-        req.set_msg_text(&format!("Welcome {}", member.first_name));
+        let text = req.get_translation_for("welcome")?;
+        req.set_msg_text(format!("{} {}", text, member.first_name));
         dvizh_repo.add_or_update_user(
             DbUser::new(member.username, Some(member.first_name), None, member.language_code),
             Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
@@ -129,7 +132,8 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
         Some(CommandType::Help) => handle_help_command(offset, req).await,
         Some(CommandType::SetBirthdate) => {
             if command_args.as_ref().map_or(true, |args| args.is_empty()) {
-                req.set_msg_text("Sorry, I can't remember your birthday. You didn't specify it.");
+                let text = req.get_translation_for("error_birthday")?;
+                req.set_msg_text(text);
                 send_msg(offset, req).await
             }
             else {
@@ -140,7 +144,8 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
             let empty_vec = &vec![];
             let args= command_args.as_ref().unwrap_or(empty_vec);
             if args.is_empty() || args.len() < 2 {
-                req.set_msg_text("Sorry, I can't remember his/her birthday. You didn't specify it.");
+                let text = req.get_translation_for("error_birthday_for")?;
+                req.set_msg_text(text);
                 send_msg(offset, req).await
             }
             else {
@@ -151,7 +156,8 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
             let empty_vec = &vec![];
             let args= command_args.as_ref().unwrap_or(empty_vec);
             if args.is_empty() || args.len() < 4 {
-                req.set_msg_text("Sorry, I can't remember this event. You didn't specify it.");
+                let text = req.get_translation_for("error_event")?;
+                req.set_msg_text(text);
                 send_msg(offset, req).await
             }
             else {
@@ -167,7 +173,8 @@ async fn handle_command(offset: &mut i64, command_t: Option<CommandType>, comman
 async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
     debug!("Hello command was called");
-    req.set_msg_text("Hello, I'm a bot of Dvizh Wrocław🔥");
+    let text = req.get_translation_for("hello")?;
+    req.set_msg_text(text);
     send_msg(offset, req).await
 }
 
@@ -187,17 +194,8 @@ async fn handle_start_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
 async fn handle_help_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
     debug!("Help command was called");
-    req.set_msg_text(r#"
-    *Help Menu*:
-    
-    - /hello: Say hello to the bot.
-    - /help: Show this help menu.
-    - /setbirthday "[date]": Set your birthdate. (Format: YYYY-MM-DD)
-    - /setbirthdayfor "[@username]" "[date]": Set birthdate for another user. (Format: YYYY-MM-DD)
-    - /addevent "[title]" "[date]" "[location]" "[description]": Add a new event to the group. (Date format: YYYY-MM-DD)
-    - /listevents: List all events for this group.
-    
-    "#);
+    let text = req.get_translation_for("help")?;
+    req.set_msg_text(text);
     send_msg(offset, req).await
 }
 
@@ -222,7 +220,8 @@ async fn handle_set_birthdate_for_command(username: &str, first_name: Option<Str
             language_code),
         Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
     )?;
-    req.set_msg_text(&format!("I memorized this day {date}"));
+    let text = req.get_translation_for("remeber_birthday")?;
+    req.set_msg_text(format!("{} {}", text, date));
     send_msg(offset, req).await
 }
 
@@ -241,7 +240,8 @@ async fn handle_add_event_command(args: &Vec<String>, offset: &mut i64, req: &mu
             args[3].to_string()
         )
     )?;
-    req.set_msg_text(&format!("I memorized this {} event", args[0]));
+    let text = req.get_translation_for("remeber_event")?;
+    req.set_msg_text(format!("{} {}", text, args[0]));
     send_msg(offset, req).await
 }
 
@@ -253,16 +253,18 @@ async fn handle_list_events_command(offset: &mut i64, req: &mut MsgRequest) -> R
     let events = dvizh_repo.get_upcoming_events_for_chat(chat.id)?;
 
     if events.len() < 1 {
-        req.set_msg_text("There is no upcoming events");
+        let text = req.get_translation_for("no_upcoming_event")?;
+        req.set_msg_text(text);
         return send_msg(offset, req).await;
     }
 
-    req.set_msg_text("Upcoming events:");
+    let text = req.get_translation_for("upcoming_event")?;
+    req.set_msg_text(text);
     send_msg(offset, req).await?;
 
     let mut i = 0;
     while i < events.len() - 1 {
-        req.set_msg_text(&format!(
+        req.set_msg_text(format!(
             "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
             events[i].title, events[i].date, events[i].location, events[i].description
         ));
@@ -270,7 +272,7 @@ async fn handle_list_events_command(offset: &mut i64, req: &mut MsgRequest) -> R
         i += 1;
     }
 
-    req.set_msg_text(&format!(
+    req.set_msg_text(format!(
         "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
         events[i].title, events[i].date, events[i].location, events[i].description
     ));
@@ -297,6 +299,7 @@ async fn handle_meme_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
 async fn handle_unknown_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
 {
     warn!("Unknown command was called");
-    req.set_msg_text("Unknown command was called");
+    let text = req.get_translation_for("unknown")?;
+    req.set_msg_text(text);
     send_msg(offset, req).await
 }

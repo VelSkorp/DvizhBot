@@ -43,7 +43,7 @@ impl LanguageCache {
     }
 
     fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, String>> {
-        let file_path = format!("translations/{lang_code}.json");
+        let file_path = format!("src/translations/{lang_code}.json");
         let data = std::fs::read_to_string(&file_path).expect("Unable to read translation file");
         let translations: HashMap<String, String> = serde_json::from_str(&data)
             .expect("Error parsing translation file");

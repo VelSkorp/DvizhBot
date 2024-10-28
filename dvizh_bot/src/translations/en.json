@@ -1,3 +1,15 @@
 {
-    
+    "welcome": "Welcome",
+    "hello": "Hello, I'm a bot of Dvizh Wrocław🔥",
+    "help": "*Help Menu*:\n\n\t- /hello: Say hello to the bot.\n\t- /help: Show this help menu.\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: YYYY-MM-DD)\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: YYYY-MM-DD)\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: YYYY-MM-DD)\n\t- /listevents: List all events for this group.\n\t- /meme: Send radnom mem from reddit.",
+    "remeber_birthday": "I memorized this day",
+    "error_birthday": "Sorry, I can't remember your birthday. You didn't specify it.",
+    "error_birthday_for": "Sorry, I can't remember his/her birthday. You didn't specify it.",
+    "remeber_event": "I memorized this event",
+    "error_event": "Sorry, I can't remember this event. You didn't specify it.",
+    "no_upcoming_event": "There is no upcoming events",
+    "upcoming_event": "Upcoming events:",
+    "event": "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
+    "unknown": "Unknown command was called",
+    "wrong": "Wrong command"
 }

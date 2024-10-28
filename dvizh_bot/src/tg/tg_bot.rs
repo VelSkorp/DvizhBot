@@ -24,16 +24,20 @@ impl MsgRequest {
     }
 
     pub fn get_msg_text(&self) -> String {
-        return self.get_msg().unwrap_or_default().text.unwrap_or_default();
+        self.get_msg().unwrap_or_default().text.unwrap_or_default()
     }
-    
+
+    pub fn get_translation_for(&mut self, key: &str) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(self.app.language_cache.get_translation_for_chat(&self.app.conf.db_path, self.get_msg().unwrap().chat.id, key)?)
+    }
+
     pub fn get_msg(&self) -> Result<Message, &'static str> {
         self.msg.as_ref().cloned().ok_or("Have no field in Message")
     }
 
-    pub fn set_msg_text(&mut self, value: &str) {
+    pub fn set_msg_text(&mut self, value: String) {
         if let Some(msg) = self.msg.as_mut() {
-            msg.text = Some(value.to_string());
+            msg.text = Some(value);
         }
     }
 }
@@ -171,11 +175,11 @@ pub async fn check_and_perform_daily_operations(app : Application) {
             }
 
             _ = morning_interval.tick() => {
-                send_daily_greeting(&app, "Доброе утро! 🌅").await;
+                send_daily_greeting(&app, "Good morning! 🌅").await;
             }
 
             _ = evening_interval.tick() => {
-                send_daily_greeting(&app, "Спокойной ночи! 🌙").await;
+                send_daily_greeting(&app, "Good night! 🌙").await;
             }
         }
     }
