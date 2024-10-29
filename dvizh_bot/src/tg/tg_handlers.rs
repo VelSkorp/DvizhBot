@@ -2,16 +2,18 @@ use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::{Message, User};
 use crate::application::Application;
-use crate::tg::tg_bot::{send_msg, send_photo, send_error_msg, MsgRequest};
+use crate::tg::tg_bot::{send_msg, send_keyboard_msg, send_photo, send_error_msg, MsgRequest};
 use crate::tg::tg_utils::{CommandType, command_str_to_type, find_chat_id, MsgType};
 use reqwest::Client;
-use serde_json::{Error, Value};
+use serde_json::{json, Error, Value};
 use log::{debug, warn, error};
 
 pub async fn handle_message(app : Application, response_results: &Vec<Value>, offset: &mut i64) -> Result<(), Box<dyn std::error::Error>>
 {
     for res in response_results {
-        if res.get("message").is_some() && 
+        if let Some(callback_query) = res.get("callback_query") {
+            handle_callback_query(&app, callback_query).await?;
+        } else if res.get("message").is_some() && 
            res["message"].is_object() && 
            res["message"].as_object().and_then(|m| m.get("photo")).is_none() 
         {
@@ -105,22 +107,31 @@ async fn handle_new_member(member: User, offset: &mut i64, req: &mut MsgRequest)
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
 
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
-        let text = req.get_translation_for("hello")?;
-        req.set_msg_text(text);
         dvizh_repo.add_chat(
             Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
         )?;
+        let text = req.get_translation_for("hello")?;
+        req.set_msg_text(text);
+        let keyboard = json!({
+            "inline_keyboard": [
+                [
+                    { "text": "English", "callback_data": "lang_en" },
+                    { "text": "Русский", "callback_data": "lang_ru" }
+                ]
+            ]
+        }).to_string();
+        send_keyboard_msg(&keyboard, offset, req).await?;
     }
     else {
         let text = req.get_translation_for("welcome")?;
         req.set_msg_text(format!("{} {}", text, member.first_name));
         dvizh_repo.add_or_update_user(
             DbUser::new(member.username, Some(member.first_name), None, member.language_code),
-            Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
+            chat.id
         )?;
+        send_msg(offset, req).await?;
     }
 
-    send_msg(offset, req).await?;
     handle_help_command(offset, req).await
 }
 
@@ -186,9 +197,24 @@ async fn handle_start_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
     dvizh_repo.add_or_update_user(
         DbUser::new(user.username, Some(user.first_name), None, user.language_code),
+        chat.id
+    )?;
+    dvizh_repo.add_chat(
         Chat::new(chat.id, chat.first_name.unwrap_or_default(), "en".to_string())
     )?;
-    handle_hello_command(offset, req).await
+
+    let text = req.get_translation_for("hello")?;
+    req.set_msg_text(text);
+    let keyboard = json!({
+        "inline_keyboard": [
+            [
+                { "text": "English", "callback_data": "lang_en" },
+                { "text": "Русский", "callback_data": "lang_ru" }
+            ]
+        ]
+    }).to_string();
+    
+    send_keyboard_msg(&keyboard, offset, req).await
 }
 
 async fn handle_help_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value, Box<dyn std::error::Error>>
@@ -210,15 +236,11 @@ async fn handle_set_birthdate_for_command(username: &str, first_name: Option<Str
 {
     debug!("SetBirthdateFor command was called with {date}");
     let usr = username.replace("@", "");
-    let chat = req.get_msg().unwrap_or_default().chat;
+    let chat_id = req.get_msg().unwrap_or_default().chat.id;
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
     dvizh_repo.add_or_update_user(
-        DbUser::new(
-            usr, 
-            first_name,
-            Some(date.to_string()), 
-            language_code),
-        Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
+        DbUser::new(usr, first_name, Some(date.to_string()), language_code),
+        chat_id
     )?;
     let text = req.get_translation_for("remeber_birthday")?;
     req.set_msg_text(format!("{} {}", text, date));
@@ -302,4 +324,23 @@ async fn handle_unknown_command(offset: &mut i64, req: &mut MsgRequest) -> Resul
     let text = req.get_translation_for("unknown")?;
     req.set_msg_text(text);
     send_msg(offset, req).await
+}
+
+async fn handle_callback_query(
+    app: &Application,
+    callback_query: &serde_json::Value,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let callback_data = callback_query["data"].as_str().unwrap_or("");
+    let chat_id = callback_query["message"]["chat"]["id"].as_i64().unwrap();
+
+    let new_language = match callback_data {
+        "lang_en" => "en",
+        "lang_ru" => "ru",
+        _ => return Ok(()),
+    };
+
+    let dvizh_repo = DvizhRepository::new(&app.conf.db_path)?;
+    dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
+
+    Ok(())
 }

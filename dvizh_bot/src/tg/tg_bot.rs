@@ -91,6 +91,20 @@ pub async fn send_msg(
     send_msg_internal(offset, req, params).await
 }
 
+pub async fn send_keyboard_msg(
+    keyboard: &str,
+    offset: &mut i64,
+    req : &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let msg = req.get_msg()?;
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("reply_markup", keyboard.to_string());
+    
+    send_msg_internal(offset, req, params).await
+}
+
 pub async fn send_photo(
     photo_url: &str,
     photo_tite: &str,

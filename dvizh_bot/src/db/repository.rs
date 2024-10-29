@@ -18,7 +18,7 @@ impl DvizhRepository {
         })
     }
 
-    pub fn add_or_update_user(&self, user: User, chat: Chat) -> Result<()> {
+    pub fn add_or_update_user(&self, user: User, chat_id: i64) -> Result<()> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO User (username, first_name, birthdate, language_code)
                 VALUES (?1, ?2, ?3, ?4)
@@ -31,8 +31,6 @@ impl DvizhRepository {
         
         debug!("db updated or added user {user:#?}");
 
-        let chat_id = chat.id;
-        self.add_chat(chat)?;
         self.add_membership(&user.username, chat_id)?;
         
         Ok(())
@@ -56,14 +54,23 @@ impl DvizhRepository {
 
     pub fn add_chat(&self, chat: Chat) -> Result<()> {
         self.connection.lock().unwrap().execute(
-            "INSERT INTO Chat (id, title)
-            VALUES (?1, ?2)
+            "INSERT INTO Chat (id, title, language_code)
+            VALUES (?1, ?2, ?3)
             ON CONFLICT(id) DO NOTHING",
-            params![chat.id, chat.title]
+            params![chat.id, chat.title, chat.language_code]
         )?;
 
         debug!("db added new chat {chat:#?}");
         
+        Ok(())
+    }
+
+    pub fn update_chat_language(&self, chat_id: i64, new_language: String) -> Result<()> {
+        let conn = self.connection.lock().unwrap();
+        conn.execute(
+            "UPDATE Chat SET language_code = ?1 WHERE id = ?2",
+            params![new_language, chat_id],
+        )?;
         Ok(())
     }
 
@@ -190,6 +197,19 @@ impl DvizhRepository {
         )?;
 
         debug!("db added new membership between {user_id} and {group_id}");
+
+        Ok(())
+    }
+
+    fn add_admin(&self, user_id: &str, group_id: i64) -> Result<()> {
+        self.connection.lock().unwrap().execute(
+            "INSERT INTO Admins (group_id, user_id)
+            VALUES (?1, ?2)
+            ON CONFLICT(group_id, user_id) DO NOTHING",
+            params![group_id, user_id]
+        )?;
+
+        debug!("db added new admin {user_id} for {group_id}");
 
         Ok(())
     }
