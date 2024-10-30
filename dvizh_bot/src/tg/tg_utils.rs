@@ -3,7 +3,7 @@ use crate::tg::tg_objects::Message;
 use crate::application::Application;
 use crate::tg::tg_bot::MsgRequest;
 use serde_json::Value;
-use log::{debug, error};
+use log::error;
 
 #[derive(Debug)]
 pub enum MsgType {
@@ -11,6 +11,7 @@ pub enum MsgType {
     GetUpdates,
     SendMessage,
     SendPhoto,
+    EditMessageReplyMarkup,
 }
 
 pub enum CommandType {
@@ -31,6 +32,7 @@ pub fn msg_type_to_str(t: &MsgType) -> &'static str
         MsgType::GetUpdates => "getUpdates",
         MsgType::SendMessage => "sendMessage",
         MsgType::SendPhoto => "sendPhoto",
+        MsgType::EditMessageReplyMarkup => "editMessageReplyMarkup",
     }
 }
 
@@ -112,7 +114,6 @@ pub async fn create_msg_request(
     update_id: i64,
     offset: &mut i64,
 ) -> Result<Option<MsgRequest>, Box<dyn std::error::Error>> {
-    debug!("Create msg request called: {message:?}");
     // Check if "message" is an object and does not contain "photo"
     if !message.is_object() || message.as_object().and_then(|m| m.get("photo")).is_some() {
         return Ok(None); // Return `None` if message is invalid or contains a photo

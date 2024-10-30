@@ -2,7 +2,7 @@ use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::User;
 use crate::application::Application;
-use crate::tg::tg_bot::{send_msg, send_keyboard_msg, send_photo, send_error_msg, MsgRequest};
+use crate::tg::tg_bot::{remove_keyboard, send_error_msg, send_keyboard_msg, send_msg, send_photo, MsgRequest};
 use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_command_arguments, CommandType};
 use reqwest::Client;
 use serde_json::{json, Error, Value};
@@ -333,7 +333,7 @@ async fn handle_callback_query(
     offset: &mut i64,
     req: &mut MsgRequest
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    debug!("handle callback query");
+    debug!("Handle callback query");
 
     let callback_data = callback_query["data"].as_str().unwrap_or("");
     let chat_id = callback_query["message"]["chat"]["id"].as_i64().unwrap();
@@ -348,12 +348,5 @@ async fn handle_callback_query(
     let dvizh_repo = DvizhRepository::new(&req.app.conf.db_path)?;
     dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
 
-    req.set_msg_text(match new_language {
-        "en" => "Language has been set to English.".to_string(),
-        "ru" => "Язык изменён на русский.".to_string(),
-        "pl" => "Język został ustawiony na polski.".to_string(),
-        _ => "Language updated.".to_string(),
-    });
-
-    send_keyboard_msg(&json!({}).to_string(), offset, req).await
+    remove_keyboard(offset, req).await
 }
