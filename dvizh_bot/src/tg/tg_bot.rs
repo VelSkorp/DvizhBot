@@ -42,85 +42,6 @@ impl MsgRequest {
     }
 }
 
-pub async fn send_request(
-    client: &Client,
-    api_token: &str,
-    method: &str,
-    params: &HashMap<&str, String>,
-) -> Result<serde_json::Value, reqwest::Error> {
-    let url = format!("https://api.telegram.org/bot{}/{}", api_token, method);
-
-    let response = client.get(&url).query(params).send().await?;
-    Ok(response.json().await?)
-}
-
-async fn send_msg_internal(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-    params: HashMap<&str, String>,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    debug!("Send message: {:?}", params);
-    let response = send_request(&req.app.cli, &req.app.conf.tg_token, msg_type_to_str(&req.method), &params).await?;
-    
-    *offset = req.update_id + 1;
-    debug!("Updated offset: {}", offset);
-    Ok(response)
-}
-
-pub async fn send_error_msg(
-    offset: &mut i64,
-    chat_id : i64,
-    req: &mut MsgRequest
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let mut params = HashMap::new();
-    params.insert("chat_id", chat_id.to_string());
-    params.insert("text", req.get_msg_text());
-
-    send_msg_internal(offset, req, params).await
-}
-
-pub async fn send_msg(
-    offset: &mut i64,
-    req : &mut MsgRequest
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let msg = req.get_msg()?;
-    let mut params = HashMap::new();
-    params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("text", msg.text.unwrap().to_string());
-
-    send_msg_internal(offset, req, params).await
-}
-
-pub async fn send_keyboard_msg(
-    keyboard: &str,
-    offset: &mut i64,
-    req : &mut MsgRequest
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let msg = req.get_msg()?;
-    let mut params = HashMap::new();
-    params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("text", msg.text.unwrap().to_string());
-    params.insert("reply_markup", keyboard.to_string());
-    
-    send_msg_internal(offset, req, params).await
-}
-
-pub async fn send_photo(
-    photo_url: &str,
-    photo_tite: &str,
-    offset: &mut i64,
-    req : &mut MsgRequest
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let msg = req.get_msg()?;
-    let mut params = HashMap::new();
-    params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("photo", photo_url.to_string());
-    params.insert("caption", photo_tite.to_string());
-    req.method = MsgType::SendPhoto;
-
-    send_msg_internal(offset, req, params).await
-}
-
 pub async fn run(app : Application, t: &MsgType) {
     // Set the initial offset to 0
     let mut offset: i64 = 0;
@@ -197,6 +118,85 @@ pub async fn check_and_perform_daily_operations(app : Application) {
             }
         }
     }
+}
+
+pub async fn send_error_msg(
+    offset: &mut i64,
+    chat_id : i64,
+    req: &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let mut params = HashMap::new();
+    params.insert("chat_id", chat_id.to_string());
+    params.insert("text", req.get_msg_text());
+
+    send_msg_internal(offset, req, params).await
+}
+
+pub async fn send_msg(
+    offset: &mut i64,
+    req : &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let msg = req.get_msg()?;
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("text", msg.text.unwrap().to_string());
+
+    send_msg_internal(offset, req, params).await
+}
+
+pub async fn send_keyboard_msg(
+    keyboard: &str,
+    offset: &mut i64,
+    req : &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let msg = req.get_msg()?;
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("reply_markup", keyboard.to_string());
+    
+    send_msg_internal(offset, req, params).await
+}
+
+pub async fn send_photo(
+    photo_url: &str,
+    photo_tite: &str,
+    offset: &mut i64,
+    req : &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let msg = req.get_msg()?;
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("photo", photo_url.to_string());
+    params.insert("caption", photo_tite.to_string());
+    req.method = MsgType::SendPhoto;
+
+    send_msg_internal(offset, req, params).await
+}
+
+async fn send_request(
+    client: &Client,
+    api_token: &str,
+    method: &str,
+    params: &HashMap<&str, String>,
+) -> Result<serde_json::Value, reqwest::Error> {
+    let url = format!("https://api.telegram.org/bot{}/{}", api_token, method);
+
+    let response = client.get(&url).query(params).send().await?;
+    Ok(response.json().await?)
+}
+
+async fn send_msg_internal(
+    offset: &mut i64,
+    req: &mut MsgRequest,
+    params: HashMap<&str, String>,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    debug!("Send message: {:?}", params);
+    let response = send_request(&req.app.cli, &req.app.conf.tg_token, msg_type_to_str(&req.method), &params).await?;
+    
+    *offset = req.update_id + 1;
+    debug!("Updated offset: {}", offset);
+    Ok(response)
 }
 
 // Function for calculating the time to the next specific time in seconds

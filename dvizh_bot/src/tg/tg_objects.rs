@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct EditedMessage {
@@ -12,6 +13,7 @@ pub struct Message {
     pub from: User,
     pub message_id: i64,
     pub text: Option<String>,
+    pub reply_markup: Option<Value>,
     pub new_chat_member: Option<User>
 }
 
@@ -35,6 +37,7 @@ impl Message {
             },
             message_id: 0,
             text: Some("".to_string()),
+            reply_markup: Some(json!({})),
             new_chat_member: Some(User {
                 first_name: "".to_string(),
                 id: chat_id,
