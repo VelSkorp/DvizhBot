@@ -1,6 +1,8 @@
 use crate::args;
 use crate::bot_config;
 use crate::LanguageCache;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use bot_config::BotConfig;
 use clap::Parser;
 use args::Verbose;
@@ -13,17 +15,17 @@ use env_logger;
 
 #[derive(Debug, Clone)]
 pub struct Application {
-    pub cli: Client,
+    pub client: Client,
     pub conf: BotConfig,
     pub args: Arguments,
     pub log_level: &'static str,
-    pub language_cache: LanguageCache
+    pub language_cache:  Arc<Mutex<LanguageCache>>
 }
 
 impl Application {
     pub fn init() -> Result<Self, Box<dyn Error>> {
         let cli = Client::new();
-        let language_cache = LanguageCache::new();
+        let language_cache = Arc::new(Mutex::new(LanguageCache::new()));
         let conf = bot_config::load_config();
         let args = args::Arguments::parse();
 
@@ -42,6 +44,6 @@ impl Application {
 
         debug!("Args: {}", arg_line);
 
-        Ok(Application { cli, conf, args, log_level, language_cache })
+        Ok(Application { client: cli, conf, args, log_level, language_cache })
     }
 }

@@ -27,8 +27,12 @@ impl MsgRequest {
         self.get_msg().unwrap_or_default().text.unwrap_or_default()
     }
 
-    pub fn get_translation_for(&mut self, key: &str) -> Result<String, Box<dyn std::error::Error>> {
-        Ok(self.app.language_cache.get_translation_for_chat(&self.app.conf.db_path, self.get_msg().unwrap().chat.id, key)?)
+    pub async fn get_translation_for(&mut self, key: &str) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(self.app.language_cache.lock().await.get_translation_for_chat(&self.app.conf.db_path, self.get_msg().unwrap().chat.id, key)?)
+    }
+
+    pub fn get_db_path(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(self.app.conf.db_path.clone())
     }
 
     pub fn get_msg(&self) -> Result<Message, &'static str> {
@@ -43,6 +47,7 @@ impl MsgRequest {
 }
 
 pub async fn run(app : Application, t: &MsgType) {
+    debug!("Bot run");
     // Set the initial offset to 0
     let mut offset: i64 = 0;
     loop {
@@ -53,7 +58,7 @@ pub async fn run(app : Application, t: &MsgType) {
     
         // Send the request and get the response
         let response = send_request(
-            &app.cli, &app.conf.tg_token, 
+            &app.client, &app.conf.tg_token, 
             msg_type_to_str(t), 
             &params).await;
         debug!("offset value - {offset}");
@@ -73,6 +78,7 @@ pub async fn run(app : Application, t: &MsgType) {
 }
 
 pub async fn check_and_perform_daily_operations(app : Application) {
+    debug!("Bot check and perform daily operations");
     // Execution time at 00:00
     let now = Local::now();
     let midnight = now.date_naive().succ_opt().unwrap().and_hms_opt(0, 0, 0);
@@ -206,7 +212,7 @@ async fn send_msg_internal(
     params: HashMap<&str, String>,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     debug!("Send message: {:?}", params);
-    let response = send_request(&req.app.cli, &req.app.conf.tg_token, msg_type_to_str(&req.method), &params).await?;
+    let response = send_request(&req.app.client, &req.app.conf.tg_token, msg_type_to_str(&req.method), &params).await?;
     
     *offset = req.update_id + 1;
     debug!("Updated offset: {}", offset);
@@ -264,7 +270,7 @@ async fn reminde_events(app : &Application, event: &Event)
     ));
     // Sending a message to Telegram
     if let Err(e) = send_request(
-        &app.cli, &app.conf.tg_token, 
+        &app.client, &app.conf.tg_token, 
         msg_type_to_str(&MsgType::SendMessage), &params).await {
         error!("Failed to send event reminder to chat {}: {}", event.group_id, e);
     }
@@ -278,7 +284,7 @@ async fn send_happy_birthday(app : &Application, user: &User, chat_id : i64)
     params.insert("text", format!("Happy Birthday, {} @{}", user.first_name.clone().unwrap_or("unknown :(".to_string()), user.username));
     // Sending a message to Telegram
     if let Err(e) = send_request(
-        &app.cli, &app.conf.tg_token, 
+        &app.client, &app.conf.tg_token, 
         msg_type_to_str(&MsgType::SendMessage), &params).await {
         error!("Failed to send birthday message to user {}: {}", user.username, e);
     }
@@ -293,7 +299,7 @@ async fn send_daily_greeting(app: &Application, message: &str) {
                 params.insert("text", message.to_string());
 
                 if let Err(e) = send_request(
-                    &app.cli,
+                    &app.client,
                     &app.conf.tg_token,
                     msg_type_to_str(&MsgType::SendMessage),
                     &params,

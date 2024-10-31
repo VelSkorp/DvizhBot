@@ -33,6 +33,7 @@ impl LanguageCache {
             self.translation_cache.insert(lang_code.clone(), translations);
         }
 
+        debug!("Get translation for {key}");
         let translation = self.translation_cache
             .get(&lang_code)
             .and_then(|translations| translations.get(key))
