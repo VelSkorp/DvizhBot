@@ -32,6 +32,10 @@ impl MsgRequest {
         Ok(self.app.language_cache.lock().await.get_translation_for_chat(&self.app.conf.db_path, self.get_msg().unwrap().chat.id, key)?)
     }
 
+    pub async fn update_group_language_code(&mut self, group_id: i64) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(self.app.language_cache.lock().await.update_group_language_code_cache(&self.app.conf.db_path, group_id)?)
+    }
+
     pub fn get_db_path(&mut self) -> Result<String, Box<dyn std::error::Error>> {
         Ok(self.app.conf.db_path.clone())
     }

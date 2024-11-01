@@ -20,9 +20,7 @@ impl LanguageCache {
     pub fn get_translation_for_chat(&mut self, db_path: &str, group_id: i64, key: &str) -> Result<String> {
         if !self.chat_language_cache.contains_key(&group_id) {
             debug!("Load {group_id} group language code cache");
-            let dvizh_repo = DvizhRepository::new(db_path)?;
-            let lang_code = dvizh_repo.get_chat_language_code(group_id)?;
-            self.chat_language_cache.insert(group_id, lang_code.clone());
+            self.update_group_language_code_cache(db_path, group_id)?;
         }
 
         let lang_code = self.chat_language_cache.get(&group_id).cloned().unwrap_or_default();
@@ -41,6 +39,13 @@ impl LanguageCache {
             .unwrap_or_else(|| key.to_string());
 
         Ok(translation)
+    }
+
+    pub fn update_group_language_code_cache(&mut self, db_path: &str, group_id: i64) -> Result<()> {
+        let dvizh_repo = DvizhRepository::new(db_path)?;
+        let lang_code = dvizh_repo.get_chat_language_code(group_id)?;
+        self.chat_language_cache.insert(group_id, lang_code.clone());
+        Ok(())
     }
 
     fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, String>> {

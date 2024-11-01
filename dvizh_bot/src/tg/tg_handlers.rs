@@ -369,6 +369,7 @@ async fn handle_callback_query(
 
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
     dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
+    req.update_group_language_code(chat_id).await?;
 
     remove_keyboard(offset, req).await
 }
