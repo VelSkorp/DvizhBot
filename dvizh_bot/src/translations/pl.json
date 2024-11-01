@@ -3,13 +3,17 @@
     "hello": "Cześć, jestem botem Dvizh Wrocław🔥",
     "help": "*Menu pomocy*:\n\r\n\t- /hello: Przywitaj się z botem.\r\n\t- /help: Pokaż to menu pomocy.\r\n\t- /setbirthday \"[date]\": Ustaw datę urodzenia. (Format: RRRR-MM-DD) \r\n\t- /setbirthdayfor \"[@username]\". \"[date]\": Ustawia datę urodzin dla innego użytkownika. (Format: RRRR-MM-DD) \r\n\t- /addevent \"[title]\" \"[data]\" \"[lokalizacja]\" \"[opis]\": Dodaje nowe wydarzenie do grupy. (Format daty: RRRR-MM-DD) \r\n\t- /listevents: Lista wszystkich wydarzeń dla tej grupy.\r\n\t- /meme: Wyślij mem radnom z reddit.",
     "remeber_birthday": "Zapamiętałem ten dzień",
-    "error_birthday": "Przykro mi, ale nie mogę zapamiętać daty urodzin. Nie podałeś jej.",
-    "error_birthday_for": "Przykro mi, ale nie mogę zapamiętać daty jego/jej urodzin. Nie podałeś jej.",
     "remeber_event": "Zapamiętałem tą imprezę",
-    "error_event": "Przykro mi, ale nie mogę sobie zapamiętać wydarzenia. Nie sprecyzowałeś go.",
-    "no_upcoming_event": "Nie ma żadnych nadchodzących imprez",
+    "no_upcoming_event": "Nie ma żadnych nadchodzących imprez.",
     "upcoming_event": "Nadchodzące imprezy:",
-    "event": "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
-    "unknown": "Wywołano nieznaną komendę",
-    "wrong": "Nieprawidłowa komenda"
+    "event_template": "📅 *Tytuł imprezy*: {title}\n🗓 *Data*: {date}\n📍 *Lokalizacja*: {location}\n📖 *Opis*: {description}\n",
+    
+    "error_birthday": "Podaj swoją datę urodzenia w formacie DD.MM.RRRR.",
+    "error_birthday_for": "Podaj zarówno nazwę użytkownika, jak i datę urodzenia w formacie DD.MM.RRRR.",
+    "error_event": "Podaj wszystkie wymagane szczegóły: tytuł, datę, lokalizację i opis.",
+    "error_invalid_date": "Nieprawidłowy format daty. Użyj formatu DD.MM.RRRR.",
+    "error_insufficient_arguments": "Nieprawidłowa liczba argumentów. Sprawdź format polecenia i spróbuj ponownie.",
+    "error_missing_arguments": "Brak wymaganych argumentów dla tego polecenia.",
+    "unknown": "Nieznane polecenie. Wpisz /help, aby wyświetlić listę dostępnych poleceń.",
+    "wrong": "Nieprawidłowe polecenie."
 }

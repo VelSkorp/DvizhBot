@@ -3,13 +3,17 @@
     "hello": "Hello, I'm a bot of Dvizh Wrocław🔥",
     "help": "*Help Menu*:\n\r\n\t- /hello: Say hello to the bot.\r\n\t- /help: Show this help menu.\r\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: YYYY-MM-DD)\r\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: YYYY-MM-DD)\r\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: YYYY-MM-DD)\r\n\t- /listevents: List all events for this group.\r\n\t- /meme: Send radnom mem from reddit.",
     "remeber_birthday": "I memorized this day",
-    "error_birthday": "Sorry, I can't remember your birthday. You didn't specify it.",
-    "error_birthday_for": "Sorry, I can't remember his/her birthday. You didn't specify it.",
     "remeber_event": "I memorized this event",
-    "error_event": "Sorry, I can't remember this event. You didn't specify it.",
-    "no_upcoming_event": "There is no upcoming events",
+    "no_upcoming_event": "There is no upcoming events.",
     "upcoming_event": "Upcoming events:",
-    "event": "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
-    "unknown": "Unknown command was called",
-    "wrong": "Wrong command"
+    "event_template": "📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n",
+
+    "error_birthday": "Please provide your birthdate in the format DD.MM.YYYY.",
+    "error_birthday_for": "Please provide both the username and birthdate in the format DD.MM.YYYY.",
+    "error_event": "Please provide all required details: title, date, location, and description.",
+    "error_invalid_date": "Invalid date format. Please use the format DD.MM.YYYY.",
+    "error_insufficient_arguments": "Invalid number of arguments. Please check the command format and try again.",
+    "error_missing_arguments": "Missing required arguments for this command.",
+    "unknown": "Unknown command. Type /help for a list of available commands.",
+    "wrong": "Wrong command."
 }

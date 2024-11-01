@@ -8,6 +8,8 @@ use reqwest::Client;
 use serde_json::{json, Error, Value};
 use log::{debug, warn, error};
 
+use super::tg_utils::{validate_argument_count, validate_date_format};
+
 pub async fn handle_message(
     app : Application, 
     response_results: &Vec<Value>, 
@@ -40,11 +42,11 @@ pub async fn handle_message(
                         continue;
                     }
                     let msg_text = &req.get_msg_text()[1..];
-                    let mut text = parse_command_arguments(msg_text);
-                    let command_str = text.remove(0);
+                    let mut args = parse_command_arguments(msg_text);
+                    let command_str = args.remove(0);
                     let command = command_str.split('@').next().unwrap().trim();
                     debug!("Handle {} command", command);
-                    handle_command(offset, command_str_to_type(command), Some(text), &mut req).await?;
+                    handle_command(offset, command_str_to_type(command), Some(args), &mut req).await?;
                     continue;
                 }
             }
@@ -74,28 +76,11 @@ async fn handle_new_member(
     req: &mut MsgRequest
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     debug!("Handle new member: {member:#?}");
-
     let chat = req.get_msg().unwrap_or_default().chat;
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
-        dvizh_repo.add_chat(
-            Chat::new(chat.id, chat.title.unwrap_or_default(), "en".to_string())
-        )?;
-        let text = req.get_translation_for("hello").await?;
-        req.set_msg_text(text);
-        let keyboard = json!({
-            "inline_keyboard": [
-                [
-                    { "text": "English", "callback_data": "lang_en" },
-                    { "text": "Русский", "callback_data": "lang_ru" },
-                    { "text": "Polski", "callback_data": "lang_pl" }
-                ]
-            ]
-        }).to_string();
-        send_keyboard_msg(&keyboard, offset, req).await?;
-    }
-    else {
+        handle_start_command(offset, req).await?;
+    } else {
         let text = req.get_translation_for("welcome").await?;
         req.set_msg_text(format!("{} {}", text, member.first_name));
         dvizh_repo.add_or_update_user(
@@ -119,37 +104,46 @@ async fn handle_command(
         Some(CommandType::Hello) => handle_hello_command(offset, req).await,
         Some(CommandType::Help) => handle_help_command(offset, req).await,
         Some(CommandType::SetBirthdate) => {
-            if command_args.as_ref().map_or(true, |args| args.is_empty()) {
-                let text = req.get_translation_for("error_birthday").await?;
-                req.set_msg_text(text);
-                send_msg(offset, req).await
-            }
-            else {
-                handle_set_birthdate_command(&command_args.unwrap()[0], offset, req).await
+            match validate_argument_count(&command_args, 1) {
+                Ok(args) => match validate_date_format(&args[0]) {
+                    Ok(_) => handle_set_birthdate_command(&args[0], offset, req).await,
+                    Err(error_key) => {
+                        let text = req.get_translation_for(&error_key).await?;
+                        req.set_msg_text(text);
+                        send_msg(offset, req).await
+                    }
+                },
+                Err(error_key) => {
+                    let text = req.get_translation_for(&error_key).await?;
+                    req.set_msg_text(text);
+                    send_msg(offset, req).await
+                }
             }
         },
         Some(CommandType::SetBirthdateFor) => {
-            let empty_vec = &vec![];
-            let args= command_args.as_ref().unwrap_or(empty_vec);
-            if args.is_empty() || args.len() < 2 {
-                let text = req.get_translation_for("error_birthday_for").await?;
-                req.set_msg_text(text);
-                send_msg(offset, req).await
-            }
-            else {
-                handle_set_birthdate_for_command(&args[0],None, None, &args[1], offset, req).await
-            }
-        },
+            match validate_argument_count(&command_args, 2) {
+                Ok(args) => match validate_date_format(&args[1]) {
+                    Ok(_) => handle_set_birthdate_for_command(&args[0], None, None, &args[1], offset, req).await,
+                    Err(error_key) => {
+                        let text = req.get_translation_for(&error_key).await?;
+                        req.set_msg_text(text);
+                        send_msg(offset, req).await
+                    }
+                },
+                Err(error_key) => {
+                    let text = req.get_translation_for(&error_key).await?;
+                    req.set_msg_text(text);
+                    send_msg(offset, req).await
+                }
+            }},
         Some(CommandType::AddEvent) => {
-            let empty_vec = &vec![];
-            let args= command_args.as_ref().unwrap_or(empty_vec);
-            if args.is_empty() || args.len() < 4 {
-                let text = req.get_translation_for("error_event").await?;
-                req.set_msg_text(text);
-                send_msg(offset, req).await
-            }
-            else {
-                handle_add_event_command(args, offset, req).await
+            match validate_argument_count(&command_args, 4) {
+                Ok(args) => handle_add_event_command(args, offset, req).await,
+                Err(error_key) => {
+                    let text = req.get_translation_for(&error_key).await?;
+                    req.set_msg_text(text);
+                    send_msg(offset, req).await
+                }
             }
         },
         Some(CommandType::ListEvents) => handle_list_events_command(offset, req).await,
@@ -176,10 +170,12 @@ async fn handle_start_command(
     let chat = req.get_msg().unwrap_or_default().chat;
     let user = req.get_msg().unwrap_or_default().from;
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-    dvizh_repo.add_or_update_user(
-        DbUser::new(user.username, Some(user.first_name), None, user.language_code),
-        chat.id
-    )?;
+    if chat.chat_type == "private" {
+        dvizh_repo.add_or_update_user(
+            DbUser::new(user.username, Some(user.first_name), None, user.language_code),
+            chat.id
+        )?;
+    }
     dvizh_repo.add_chat(
         Chat::new(chat.id, chat.first_name.unwrap_or_default(), "en".to_string())
     )?;
@@ -272,7 +268,7 @@ async fn handle_list_events_command(
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
     let events = dvizh_repo.get_upcoming_events_for_chat(chat.id)?;
 
-    if events.len() < 1 {
+    if events.is_empty() {
         let text = req.get_translation_for("no_upcoming_event").await?;
         req.set_msg_text(text);
         return send_msg(offset, req).await;
@@ -282,21 +278,21 @@ async fn handle_list_events_command(
     req.set_msg_text(text);
     send_msg(offset, req).await?;
 
-    let mut i = 0;
-    while i < events.len() - 1 {
-        req.set_msg_text(format!(
-            "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
-            events[i].title, events[i].date, events[i].location, events[i].description
-        ));
+    // Retrieve the entire event template from translation
+    let template = req.get_translation_for("event_template").await?;
+
+    // Send each event using the template
+    for event in events {
+        let message = template.replace("{title}", &event.title)
+            .replace("{date}", &event.date)
+            .replace("{location}", &event.location)
+            .replace("{description}", &event.description);
+
+        req.set_msg_text(message);
         send_msg(offset, req).await?;
-        i += 1;
     }
 
-    req.set_msg_text(format!(
-        "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
-        events[i].title, events[i].date, events[i].location, events[i].description
-    ));
-    send_msg(offset, req).await
+    Ok(serde_json::Value::Null)
 }
 
 async fn handle_meme_command(

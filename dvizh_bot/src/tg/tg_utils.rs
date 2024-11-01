@@ -2,6 +2,7 @@ use crate::tg::tg_handlers::handle_error;
 use crate::tg::tg_objects::Message;
 use crate::application::Application;
 use crate::tg::tg_bot::MsgRequest;
+use chrono::NaiveDate;
 use serde_json::Value;
 use log::error;
 
@@ -46,7 +47,7 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "addevent" => Some(CommandType::AddEvent),
         "listevents" => Some(CommandType::ListEvents),
         "meme" => Some(CommandType::Meme),
-        _ => None,
+        _ => None
     }
 }
 
@@ -87,7 +88,7 @@ pub fn parse_command_arguments(msg_text: &str) -> Vec<String> {
 
     for c in msg_text.chars() {
         match c {
-            '"' => {
+            '"' | '“' | '”' | '[' | ']' => {
                 in_quotes = !in_quotes;
             }
             ' ' if !in_quotes => {
@@ -106,6 +107,21 @@ pub fn parse_command_arguments(msg_text: &str) -> Vec<String> {
     }
 
     args
+}
+
+/// Validates that `command_args` has at least `required_count` arguments.
+pub fn validate_argument_count(command_args: &Option<Vec<String>>, required_count: usize) -> Result<&Vec<String>, String> {
+    let args = command_args.as_ref().ok_or_else(|| "error_missing_arguments".to_string())?;
+    if args.len() < required_count || args.len() > required_count {
+        return Err("error_insufficient_arguments".to_string());
+    }
+    Ok(args)
+}
+
+/// Validates that `date_str` matches the `DD.MM.YYYY` format.
+pub fn validate_date_format(date_str: &str) -> Result<NaiveDate, String> {
+    NaiveDate::parse_from_str(date_str, "%d.%m.%Y")
+        .map_err(|_| "error_invalid_date".to_string())
 }
 
 pub async fn create_msg_request(
