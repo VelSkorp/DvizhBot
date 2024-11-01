@@ -2,7 +2,7 @@ use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::User;
 use crate::application::Application;
-use crate::tg::tg_bot::{remove_keyboard, send_error_msg, send_keyboard_msg, send_msg, send_photo, MsgRequest};
+use crate::tg::tg_bot::{get_chat_administrators, remove_keyboard, send_error_msg, send_keyboard_msg, send_msg, send_photo, MsgRequest};
 use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_command_arguments, CommandType};
 use reqwest::Client;
 use serde_json::{json, Error, Value};
@@ -80,6 +80,19 @@ async fn handle_new_member(
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
         handle_start_command(offset, req).await?;
+        let admins = get_chat_administrators(&req.app.client, &req.app.conf.tg_token, chat.id).await?;
+        debug!("List of {} admins: {:#?}", chat.id, admins);
+        for admin in admins {
+            dvizh_repo.add_or_update_user(
+                DbUser::new(admin.username.clone(), admin.first_name, None, admin.language_code),
+                chat.id
+            )?;
+
+            dvizh_repo.add_admin(
+                &admin.username,
+                chat.id
+            )?;
+        }
     } else {
         let text = req.get_translation_for("welcome").await?;
         req.set_msg_text(format!("{} {}", text, member.first_name));
@@ -170,14 +183,20 @@ async fn handle_start_command(
     let chat = req.get_msg().unwrap_or_default().chat;
     let user = req.get_msg().unwrap_or_default().from;
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
+    let mut title = chat.title;
     if chat.chat_type == "private" {
         dvizh_repo.add_or_update_user(
-            DbUser::new(user.username, Some(user.first_name), None, user.language_code),
+            DbUser::new(user.username.clone(), Some(user.first_name), None, user.language_code),
             chat.id
         )?;
+        dvizh_repo.add_admin(
+            &user.username,
+            chat.id
+        )?;
+        title = chat.first_name;
     }
     dvizh_repo.add_chat(
-        Chat::new(chat.id, chat.first_name.unwrap_or_default(), "en".to_string())
+        Chat::new(chat.id, title.unwrap_or_default(), "en".to_string())
     )?;
 
     let text = req.get_translation_for("hello").await?;
@@ -243,7 +262,14 @@ async fn handle_add_event_command(
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     debug!("AddEvent command was called");
     let chat = req.get_msg().unwrap_or_default().chat;
+    let user = req.get_msg().unwrap_or_default().from;
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
+
+    if dvizh_repo.is_not_admin(&user.username, chat.id)? {
+        let text = req.get_translation_for("error_not_admin").await?;
+        req.set_msg_text(text);
+        return send_msg(offset, req).await;
+    }
 
     dvizh_repo.add_or_update_event(
         Event::new(

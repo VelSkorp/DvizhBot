@@ -9,6 +9,7 @@ use tokio::time::{interval_at, Duration, Instant};
 use std::collections::HashMap;
 use reqwest::Client;
 use log::{debug, error};
+use std::error::Error;
 
 #[derive(Debug)]
 pub struct MsgRequest {
@@ -192,6 +193,38 @@ pub async fn remove_keyboard(
     req.method = MsgType::EditMessageReplyMarkup;
 
     send_msg_internal(offset, req, params).await
+}
+
+pub async fn get_chat_administrators(
+    client: &Client,
+    api_token: &str,
+    chat_id: i64,
+) -> Result<Vec<User>, Box<dyn Error>> {
+    let mut params = HashMap::new();
+    params.insert("chat_id", chat_id.to_string());
+
+    let response = send_request(client, api_token, msg_type_to_str(&MsgType::GetChatAdministrators), &params).await?;
+
+    if response["ok"].as_bool().unwrap_or(false) {
+        let admins = response["result"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|admin| {
+                let user = &admin["user"];
+                
+                Some(User {
+                    username: user["username"].as_str()?.to_string(),
+                    first_name: user["first_name"].as_str().map(|s| s.to_string()),
+                    birthdate: None,
+                    language_code: user["language_code"].as_str().map(|s| s.to_string()),
+                })
+            })
+            .collect();
+        Ok(admins)
+    } else {
+        Err("Failed to retrieve chat administrators".into())
+    }
 }
 
 async fn send_request(

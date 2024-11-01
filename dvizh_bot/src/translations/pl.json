@@ -8,6 +8,7 @@
     "upcoming_event": "Nadchodzące imprezy:",
     "event_template": "📅 *Tytuł imprezy*: {title}\n🗓 *Data*: {date}\n📍 *Lokalizacja*: {location}\n📖 *Opis*: {description}\n",
     
+    "error_not_admin": "Nie masz uprawnień niezbędnych do wykonania tej czynności. Dozwolone są tylko uprawnienia administratora.",
     "error_birthday": "Podaj swoją datę urodzenia w formacie DD.MM.RRRR.",
     "error_birthday_for": "Podaj zarówno nazwę użytkownika, jak i datę urodzenia w formacie DD.MM.RRRR.",
     "error_event": "Podaj wszystkie wymagane szczegóły: tytuł, datę, lokalizację i opis.",

@@ -8,6 +8,7 @@
     "upcoming_event": "Upcoming events:",
     "event_template": "📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n",
 
+    "error_not_admin": "You do not have the necessary permissions to perform this action. Only administrators are allowed.",
     "error_birthday": "Please provide your birthdate in the format DD.MM.YYYY.",
     "error_birthday_for": "Please provide both the username and birthdate in the format DD.MM.YYYY.",
     "error_event": "Please provide all required details: title, date, location, and description.",

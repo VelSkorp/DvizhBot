@@ -13,6 +13,7 @@ pub enum MsgType {
     SendMessage,
     SendPhoto,
     EditMessageReplyMarkup,
+    GetChatAdministrators,
 }
 
 pub enum CommandType {
@@ -34,6 +35,7 @@ pub fn msg_type_to_str(t: &MsgType) -> &'static str
         MsgType::SendMessage => "sendMessage",
         MsgType::SendPhoto => "sendPhoto",
         MsgType::EditMessageReplyMarkup => "editMessageReplyMarkup",
+        MsgType::GetChatAdministrators => "getChatAdministrators",
     }
 }
 

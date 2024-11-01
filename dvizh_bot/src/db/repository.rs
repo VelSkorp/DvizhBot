@@ -56,7 +56,9 @@ impl DvizhRepository {
         self.connection.lock().unwrap().execute(
             "INSERT INTO Chat (id, title, language_code)
             VALUES (?1, ?2, ?3)
-            ON CONFLICT(id) DO NOTHING",
+            ON CONFLICT(id) DO UPDATE SET
+                title = CASE WHEN Chat.title IS NOT NULL THEN excluded.title ELSE Chat.title END,
+                language_code = Chat.language_code",
             params![chat.id, chat.title, chat.language_code]
         )?;
 
@@ -188,6 +190,30 @@ impl DvizhRepository {
         Ok(code)
     }
 
+    pub fn add_admin(&self, user_id: &str, group_id: i64) -> Result<()> {
+        self.connection.lock().unwrap().execute(
+            "INSERT INTO Admins (group_id, user_id)
+            VALUES (?1, ?2)
+            ON CONFLICT(group_id, user_id) DO NOTHING",
+            params![group_id, user_id]
+        )?;
+
+        debug!("db added new admin {user_id} for {group_id}");
+
+        Ok(())
+    }
+
+    pub fn is_not_admin(&self, user_id: &str, group_id: i64) -> Result<bool> {
+        let connection = self.connection.lock().unwrap();
+        let mut stmt = connection.prepare(
+            "SELECT 1 FROM Admins WHERE group_id = ? AND user_id = ? LIMIT 1"
+        )?;
+
+        debug!("Checking if user {user_id} is NOT an admin in group {group_id}");
+
+        Ok(!stmt.exists(params![group_id, user_id])?)
+    }
+
     fn add_membership(&self, user_id: &str, group_id: i64) -> Result<()> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO Members (group_id, user_id)
@@ -197,19 +223,6 @@ impl DvizhRepository {
         )?;
 
         debug!("db added new membership between {user_id} and {group_id}");
-
-        Ok(())
-    }
-
-    fn add_admin(&self, user_id: &str, group_id: i64) -> Result<()> {
-        self.connection.lock().unwrap().execute(
-            "INSERT INTO Admins (group_id, user_id)
-            VALUES (?1, ?2)
-            ON CONFLICT(group_id, user_id) DO NOTHING",
-            params![group_id, user_id]
-        )?;
-
-        debug!("db added new admin {user_id} for {group_id}");
 
         Ok(())
     }
