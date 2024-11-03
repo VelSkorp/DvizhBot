@@ -4,7 +4,10 @@ use crate::application::Application;
 use crate::tg::tg_bot::MsgRequest;
 use chrono::NaiveDate;
 use serde_json::Value;
-use log::error;
+use log::{debug, error};
+use scraper::{Html, Selector};
+use std::time::Duration;
+use headless_chrome::{Browser, LaunchOptions};
 
 #[derive(Debug)]
 pub enum MsgType {
@@ -109,6 +112,46 @@ pub fn parse_command_arguments(msg_text: &str) -> Vec<String> {
     }
 
     args
+}
+
+pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    // Initialize the headless browser
+    let browser = Browser::new(LaunchOptions{
+        headless: true,
+        ..Default::default()
+    })?;
+
+    let tab = browser.new_tab()?;
+    tab.navigate_to("https://admem.net/ru")?;
+
+    tab.wait_until_navigated()?;
+    tab.wait_for_element("div img[src*='storage/meme']")?;
+    tab.evaluate(
+        "window.scrollTo(0, document.body.scrollHeight);",
+        false,
+    )?;
+    std::thread::sleep(Duration::from_secs(2));
+    let html = tab.get_content()?;
+
+    debug!("Parse html");
+
+    // Parse the HTML to extract image URLs
+    let document = Html::parse_document(&html);
+    let meme_selector = Selector::parse("img[src*='storage/meme']").unwrap();
+    let meme_urls: Vec<_> = document
+        .select(&meme_selector)
+        .filter_map(|element| element.value().attr("src"))
+        .map(|src| format!("https://admem.net/{src}"))
+        .collect();
+
+    debug!("{meme_urls:#?}");
+
+    // Check and return the results
+    if meme_urls.is_empty() {
+        Err("No memes found".into())
+    } else {
+        Ok(meme_urls)
+    }
 }
 
 /// Validates that `command_args` has at least `required_count` arguments.

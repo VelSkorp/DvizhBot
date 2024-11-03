@@ -3,8 +3,8 @@ use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::User;
 use crate::application::Application;
 use crate::tg::tg_bot::{get_chat_administrators, remove_keyboard, send_error_msg, send_keyboard_msg, send_msg, send_photo, MsgRequest};
-use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_command_arguments, CommandType};
-use reqwest::Client;
+use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_memes, parse_command_arguments, CommandType};
+use rand::Rng;
 use serde_json::{json, Error, Value};
 use log::{debug, warn, error};
 
@@ -326,18 +326,17 @@ async fn handle_meme_command(
     req: &mut MsgRequest
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     debug!("Meme command was called");
-
-    // Fetch random meme from Meme API (which pulls memes from Reddit)
-    let meme_api_url = "https://meme-api.com/gimme/russian_memes_only";
-    let client = Client::new();
-    let response = client.get(meme_api_url).send().await?;
-    let body: Value = response.json().await?;
-    
-    // Extract the meme's image URL
-    let meme_url = body["url"].as_str().unwrap();
-    let meme_title = body["title"].as_str().unwrap();
-
-    send_photo(meme_url, meme_title, offset, req).await
+    let mut mem_cnt = req.app.meme_cache.lock().await.len();
+    if mem_cnt <= 2 {
+        debug!("get and load meme chache");
+        let mut memes = parse_memes().await?;
+        req.app.meme_cache.lock().await.append(&mut memes);
+        mem_cnt = req.app.meme_cache.lock().await.len();
+    }
+    debug!("Mem count: {mem_cnt}");
+    let random_index = rand::thread_rng().gen_range(0..mem_cnt);
+    let mem_url = req.app.meme_cache.lock().await.remove(random_index);
+    send_photo(&mem_url, "", offset, req).await
 }
 
 async fn handle_unknown_command(
