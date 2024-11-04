@@ -7,6 +7,8 @@
     "no_upcoming_event": "Nie ma żadnych nadchodzących imprez.",
     "upcoming_event": "Nadchodzące imprezy:",
     "event_template": "📅 *Tytuł imprezy*: {title}\n🗓 *Data*: {date}\n📍 *Lokalizacja*: {location}\n📖 *Opis*: {description}\n",
+    "morning": "Miłego dnia! 🌅",
+    "night": "Dobrej nocy! 🌙",
     
     "error_not_admin": "Nie masz uprawnień niezbędnych do wykonania tej czynności. Dozwolone są tylko uprawnienia administratora.",
     "error_birthday": "Podaj swoją datę urodzenia w formacie DD.MM.RRRR.",

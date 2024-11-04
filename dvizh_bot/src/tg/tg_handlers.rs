@@ -161,6 +161,7 @@ async fn handle_command(
         },
         Some(CommandType::ListEvents) => handle_list_events_command(offset, req).await,
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
+        Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         None => handle_unknown_command(offset, req).await,
     }
 }
@@ -337,6 +338,36 @@ async fn handle_meme_command(
     let random_index = rand::thread_rng().gen_range(0..mem_cnt);
     let mem_url = req.app.meme_cache.lock().await.remove(random_index);
     send_photo(&mem_url, "", offset, req).await
+}
+
+async fn handle_astro_command(
+    offset: &mut i64, 
+    req: &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    debug!("Astro command was called");
+
+    let text = req.get_translation_for("astro").await?;
+    req.set_msg_text(text);
+    let keyboard = json!({
+        "inline_keyboard": [
+            [
+                { "text": "Aries", "callback_data": "zodiac_aries" },
+                { "text": "Taurus", "callback_data": "zodiac_taurus" },
+                { "text": "Gemini", "callback_data": "zodiac_gemini" },
+                { "text": "Cancer", "callback_data": "zodiac_cancer" },
+                { "text": "Leo", "callback_data": "zodiac_leo" },
+                { "text": "Virgo", "callback_data": "zodiac_virgo" },
+                { "text": "Libra", "callback_data": "zodiac_libra" },
+                { "text": "Scorpio", "callback_data": "zodiac_scorpio" },
+                { "text": "Sagittarius", "callback_data": "zodiac_sagittarius" },
+                { "text": "Capricorn", "callback_data": "zodiac_capricorn" },
+                { "text": "Aquarius", "callback_data": "zodiac_aquarius" },
+                { "text": "Pisces", "callback_data": "zodiac_pisces" }
+            ]
+        ]
+    }).to_string();
+    
+    send_keyboard_msg(&keyboard, offset, req).await
 }
 
 async fn handle_unknown_command(

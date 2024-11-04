@@ -28,6 +28,7 @@ pub enum CommandType {
     AddEvent,
     ListEvents,
     Meme,
+    Astro,
 }
 
 pub fn msg_type_to_str(t: &MsgType) -> &'static str 
@@ -52,6 +53,7 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "addevent" => Some(CommandType::AddEvent),
         "listevents" => Some(CommandType::ListEvents),
         "meme" => Some(CommandType::Meme),
+        "astro" => Some(CommandType::Astro),
         _ => None
     }
 }

@@ -121,11 +121,11 @@ pub async fn check_and_perform_daily_operations(app : Application) {
             }
 
             _ = morning_interval.tick() => {
-                send_daily_greeting(&app, "Good morning! 🌅").await;
+                send_daily_greeting(&app, "morning").await;
             }
 
             _ = evening_interval.tick() => {
-                send_daily_greeting(&app, "Good night! 🌙").await;
+                send_daily_greeting(&app, "night").await;
             }
         }
     }
@@ -327,10 +327,11 @@ async fn send_happy_birthday(app : &Application, user: &User, chat_id : i64)
     }
 }
 
-async fn send_daily_greeting(app: &Application, message: &str) {
+async fn send_daily_greeting(app: &Application, key: &str) -> Result<(), Box<dyn std::error::Error>> {
     if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
         if let Ok(chats) = dvizh_repo.get_all_chat_ids() {
             for chat_id in chats {
+                let message = app.language_cache.lock().await.get_translation_for_chat(&app.conf.db_path, chat_id, key)?;
                 let mut params = HashMap::new();
                 params.insert("chat_id", chat_id.to_string());
                 params.insert("text", message.to_string());
@@ -343,10 +344,11 @@ async fn send_daily_greeting(app: &Application, message: &str) {
                 ).await {
                     error!("Failed to send daily greeting to chat {}: {}", chat_id, e);
                 }
+                debug!("Sent daily greeting: {message} in {chat_id}");
             }
-            debug!("Sent daily greeting: {}", message);
         } else {
             error!("Failed to retrieve chat IDs for daily greetings.");
         }
     }
+    Ok(())
 }
