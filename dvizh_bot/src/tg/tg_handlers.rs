@@ -162,6 +162,7 @@ async fn handle_command(
         Some(CommandType::ListEvents) => handle_list_events_command(offset, req).await,
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
+        Some(CommandType::Luck) => handle_luck_command(offset, req).await,
         None => handle_unknown_command(offset, req).await,
     }
 }
@@ -185,6 +186,9 @@ async fn handle_start_command(
     let user = req.get_msg().unwrap_or_default().from;
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
     let mut title = chat.title;
+    dvizh_repo.add_chat(
+        Chat::new(chat.id, title.unwrap_or_default(), "en".to_string())
+    )?;
     if chat.chat_type == "private" {
         dvizh_repo.add_or_update_user(
             DbUser::new(user.username.clone(), Some(user.first_name), None, user.language_code),
@@ -196,9 +200,6 @@ async fn handle_start_command(
         )?;
         title = chat.first_name;
     }
-    dvizh_repo.add_chat(
-        Chat::new(chat.id, title.unwrap_or_default(), "en".to_string())
-    )?;
 
     let text = req.get_translation_for("hello").await?;
     req.set_msg_text(text);
@@ -368,6 +369,16 @@ async fn handle_astro_command(
     }).to_string();
     
     send_keyboard_msg(&keyboard, offset, req).await
+}
+
+async fn handle_luck_command(
+    offset: &mut i64, 
+    req: &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    warn!("Luck command was called");
+    // let text = req.get_translation_for("unknown").await?;
+    req.set_msg_text("Удачи тебе по жизни! :)".to_string());
+    send_msg(offset, req).await
 }
 
 async fn handle_unknown_command(

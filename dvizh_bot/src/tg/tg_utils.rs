@@ -29,6 +29,7 @@ pub enum CommandType {
     ListEvents,
     Meme,
     Astro,
+    Luck,
 }
 
 pub fn msg_type_to_str(t: &MsgType) -> &'static str 
@@ -54,6 +55,7 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "listevents" => Some(CommandType::ListEvents),
         "meme" => Some(CommandType::Meme),
         "astro" => Some(CommandType::Astro),
+        "luck" => Some(CommandType::Luck),
         _ => None
     }
 }
