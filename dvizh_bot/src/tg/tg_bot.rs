@@ -121,11 +121,15 @@ pub async fn check_and_perform_daily_operations(app : Application) {
             }
 
             _ = morning_interval.tick() => {
-                send_daily_greeting(&app, "morning").await;
+                if let Err(e) = send_daily_greeting(&app, "morning").await {
+                    error!("Error sending morning greeting: {e:?}");
+                }
             }
 
             _ = evening_interval.tick() => {
-                send_daily_greeting(&app, "night").await;
+                if let Err(e) = send_daily_greeting(&app, "night").await {
+                    error!("Error sending evening greeting: {e:?}");
+                }
             }
         }
     }

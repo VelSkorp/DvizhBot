@@ -185,9 +185,9 @@ async fn handle_start_command(
     let chat = req.get_msg().unwrap_or_default().chat;
     let user = req.get_msg().unwrap_or_default().from;
     let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-    let mut title = chat.title;
+    let title = chat.title.unwrap_or(chat.first_name.unwrap_or_default());
     dvizh_repo.add_chat(
-        Chat::new(chat.id, title.unwrap_or_default(), "en".to_string())
+        Chat::new(chat.id, title, "en".to_string())
     )?;
     if chat.chat_type == "private" {
         dvizh_repo.add_or_update_user(
@@ -198,7 +198,6 @@ async fn handle_start_command(
             &user.username,
             chat.id
         )?;
-        title = chat.first_name;
     }
 
     let text = req.get_translation_for("hello").await?;
@@ -401,16 +400,37 @@ async fn handle_callback_query(
     let callback_data = callback_query["data"].as_str().unwrap_or("");
     let chat_id = callback_query["message"]["chat"]["id"].as_i64().unwrap();
 
-    let new_language = match callback_data {
-        "lang_en" => "en",
-        "lang_ru" => "ru",
-        "lang_pl" => "pl",
-        _ => "en"
-    };
+    if callback_data.starts_with("lang_") {
+        let new_language = match callback_data {
+            "lang_en" => "en",
+            "lang_ru" => "ru",
+            "lang_pl" => "pl",
+            _ => "en",
+        };
 
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-    dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
-    req.update_group_language_code(chat_id).await?;
+        let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
+        dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
+        req.update_group_language_code(chat_id).await?;
+    } else if callback_data.starts_with("zodiac_") {
+        let zodiac_sign = match callback_data {
+            "zodiac_aries" => "Aries",
+            "zodiac_taurus" => "Taurus",
+            "zodiac_gemini" => "Gemini",
+            "zodiac_cancer" => "Cancer",
+            "zodiac_leo" => "Leo",
+            "zodiac_virgo" => "Virgo",
+            "zodiac_libra" => "Libra",
+            "zodiac_scorpio" => "Scorpio",
+            "zodiac_sagittarius" => "Sagittarius",
+            "zodiac_capricorn" => "Capricorn",
+            "zodiac_aquarius" => "Aquarius",
+            "zodiac_pisces" => "Pisces",
+            _ => "Unnown",
+        };
+        let message = format!("You chose: {zodiac_sign}");
+        req.set_msg_text(message);
+        send_msg(offset, req).await?;
+    }
 
     remove_keyboard(offset, req).await
 }
