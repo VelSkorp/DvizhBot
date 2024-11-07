@@ -1,7 +1,7 @@
 {
     "welcome": "Welcome",
     "hello": "Hello, I'm a bot of Dvizh Wrocław🔥",
-    "help": "*Help Menu*:\n\r\n\t- /hello: Say hello to the bot.\r\n\t- /help: Show this help menu.\r\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: DD.MM.YYYY)\r\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: DD.MM.YYYY)\r\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: DD.MM.YYYY)\r\n\t- /listevents: List all events for this group.\r\n\t- /meme: Send radnom mem from reddit.\r\n\t- /luck: Wish me luck.",
+    "help": "*Help Menu*:\n\r\n\t- /hello: Say hello to the bot.\r\n\t- /help: Show this help menu.\r\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: DD.MM.YYYY)\r\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: DD.MM.YYYY)\r\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: DD.MM.YYYY)\r\n\t- /listevents: List all events for this group.\r\n\t- /meme: Send radnom mem from reddit.\r\n\t- /luck: Wish me luck.\r\n\t- /astro: Get personalized daily horoscope.",
     "remeber_birthday": "I memorized this day",
     "remeber_event": "I memorized this event",
     "no_upcoming_event": "There is no upcoming events.",
@@ -9,6 +9,7 @@
     "event_template": "📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n",
     "morning": "Good morning! 🌅",
     "night": "Good night! 🌙",
+    "astro": "Please select your zodiac sign from the options below! 🌟",
 
     "error_not_admin": "You do not have the necessary permissions to perform this action. Only administrators are allowed.",
     "error_birthday": "Please provide your birthdate in the format DD.MM.YYYY.",

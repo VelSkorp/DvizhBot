@@ -2,8 +2,8 @@ use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::User;
 use crate::application::Application;
-use crate::tg::tg_bot::{get_chat_administrators, remove_keyboard, send_error_msg, send_keyboard_msg, send_msg, send_photo, MsgRequest};
-use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_memes, parse_command_arguments, CommandType};
+use crate::tg::tg_bot::{get_chat_administrators, remove_keyboard, send_error_msg, send_keyboard_msg, send_msg, send_reply_msg, send_photo, MsgRequest};
+use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_memes, get_horoscope, parse_command_arguments, CommandType};
 use rand::Rng;
 use serde_json::{json, Error, Value};
 use log::{debug, warn, error};
@@ -377,7 +377,7 @@ async fn handle_luck_command(
     warn!("Luck command was called");
     // let text = req.get_translation_for("unknown").await?;
     req.set_msg_text("Удачи тебе по жизни! :)".to_string());
-    send_msg(offset, req).await
+    send_reply_msg(offset, req).await
 }
 
 async fn handle_unknown_command(
@@ -413,23 +413,23 @@ async fn handle_callback_query(
         req.update_group_language_code(chat_id).await?;
     } else if callback_data.starts_with("zodiac_") {
         let zodiac_sign = match callback_data {
-            "zodiac_aries" => "Aries",
-            "zodiac_taurus" => "Taurus",
-            "zodiac_gemini" => "Gemini",
-            "zodiac_cancer" => "Cancer",
-            "zodiac_leo" => "Leo",
-            "zodiac_virgo" => "Virgo",
-            "zodiac_libra" => "Libra",
-            "zodiac_scorpio" => "Scorpio",
-            "zodiac_sagittarius" => "Sagittarius",
-            "zodiac_capricorn" => "Capricorn",
-            "zodiac_aquarius" => "Aquarius",
-            "zodiac_pisces" => "Pisces",
+            "zodiac_aries" => "aries",
+            "zodiac_taurus" => "taurus",
+            "zodiac_gemini" => "gemini",
+            "zodiac_cancer" => "cancer",
+            "zodiac_leo" => "leo",
+            "zodiac_virgo" => "virgo",
+            "zodiac_libra" => "libra",
+            "zodiac_scorpio" => "scorpio",
+            "zodiac_sagittarius" => "sagittarius",
+            "zodiac_capricorn" => "capricorn",
+            "zodiac_aquarius" => "aquarius",
+            "zodiac_pisces" => "pisces",
             _ => "Unnown",
         };
-        let message = format!("You chose: {zodiac_sign}");
+        let message = format!("You chose: {}\r\nYor horoscope for today is: {:#?}", zodiac_sign, get_horoscope(zodiac_sign).await?);
         req.set_msg_text(message);
-        send_msg(offset, req).await?;
+        send_reply_msg(offset, req).await?;
     }
 
     remove_keyboard(offset, req).await
