@@ -2,7 +2,7 @@ use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::User;
 use crate::application::Application;
-use crate::tg::tg_bot::{get_chat_administrators, remove_keyboard, send_error_msg, send_keyboard_msg, send_msg, send_reply_msg, send_photo, MsgRequest};
+use crate::tg::tg_bot::{get_chat_administrators, remove_keyboard, send_error_msg, send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_reply_msg, send_photo_msg, edit_message_and_remove_keyboard, MsgRequest};
 use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_memes, get_horoscope, parse_command_arguments, CommandType};
 use rand::Rng;
 use serde_json::{json, Error, Value};
@@ -337,7 +337,7 @@ async fn handle_meme_command(
     debug!("Mem count: {mem_cnt}");
     let random_index = rand::thread_rng().gen_range(0..mem_cnt);
     let mem_url = req.app.meme_cache.lock().await.remove(random_index);
-    send_photo(&mem_url, "", offset, req).await
+    send_photo_msg(&mem_url, "", offset, req).await
 }
 
 async fn handle_astro_command(
@@ -367,7 +367,7 @@ async fn handle_astro_command(
         ]
     }).to_string();
     
-    send_keyboard_msg(&keyboard, offset, req).await
+    send_keyboard_reply_msg(&keyboard, offset, req).await
 }
 
 async fn handle_luck_command(
@@ -394,10 +394,10 @@ async fn handle_callback_query(
     callback_query: &serde_json::Value,
     offset: &mut i64,
     req: &mut MsgRequest
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Handle callback query");
 
-    let callback_data = callback_query["data"].as_str().unwrap_or("");
+    let callback_data = callback_query["data"].as_str().unwrap_or_default();
     let chat_id = callback_query["message"]["chat"]["id"].as_i64().unwrap();
 
     if callback_data.starts_with("lang_") {
@@ -411,26 +411,26 @@ async fn handle_callback_query(
         let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
         dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
         req.update_group_language_code(chat_id).await?;
+        remove_keyboard(offset, req).await?;
     } else if callback_data.starts_with("zodiac_") {
         let zodiac_sign = match callback_data {
-            "zodiac_aries" => "aries",
-            "zodiac_taurus" => "taurus",
-            "zodiac_gemini" => "gemini",
-            "zodiac_cancer" => "cancer",
-            "zodiac_leo" => "leo",
-            "zodiac_virgo" => "virgo",
-            "zodiac_libra" => "libra",
-            "zodiac_scorpio" => "scorpio",
-            "zodiac_sagittarius" => "sagittarius",
-            "zodiac_capricorn" => "capricorn",
-            "zodiac_aquarius" => "aquarius",
-            "zodiac_pisces" => "pisces",
+            "zodiac_aries" => "Aries",
+            "zodiac_taurus" => "Taurus",
+            "zodiac_gemini" => "Gemini",
+            "zodiac_cancer" => "Cancer",
+            "zodiac_leo" => "Leo",
+            "zodiac_virgo" => "Virgo",
+            "zodiac_libra" => "Libra",
+            "zodiac_scorpio" => "Scorpio",
+            "zodiac_sagittarius" => "Sagittarius",
+            "zodiac_capricorn" => "Capricorn",
+            "zodiac_aquarius" => "Aquarius",
+            "zodiac_pisces" => "Pisces",
             _ => "Unnown",
         };
-        let message = format!("You chose: {}\r\nYor horoscope for today is: {:#?}", zodiac_sign, get_horoscope(zodiac_sign).await?);
+        let message = format!("You chose: {}\r\nYor horoscope for today is: {}", zodiac_sign, get_horoscope(zodiac_sign).await?);
         req.set_msg_text(message);
-        send_reply_msg(offset, req).await?;
+        edit_message_and_remove_keyboard(offset, req).await?;
     }
-
-    remove_keyboard(offset, req).await
+    Ok(())
 }

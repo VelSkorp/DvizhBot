@@ -15,6 +15,7 @@ pub enum MsgType {
     GetUpdates,
     SendMessage,
     SendPhoto,
+    EditMessageText,
     EditMessageReplyMarkup,
     GetChatAdministrators,
 }
@@ -39,6 +40,7 @@ pub fn msg_type_to_str(t: &MsgType) -> &'static str
         MsgType::GetUpdates => "getUpdates",
         MsgType::SendMessage => "sendMessage",
         MsgType::SendPhoto => "sendPhoto",
+        MsgType::EditMessageText => "editMessageText",
         MsgType::EditMessageReplyMarkup => "editMessageReplyMarkup",
         MsgType::GetChatAdministrators => "getChatAdministrators",
     }
@@ -156,6 +158,22 @@ pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     } else {
         Ok(meme_urls)
     }
+}
+
+pub async fn get_horoscope(sign: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let url = format!("https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign={}&day=TODAY", sign);
+    debug!("{url}");
+    let response = client
+        .get(&url)
+        .header("accept", "application/json")
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    let json: Value = serde_json::from_str(&response)?;
+    Ok(json["data"]["horoscope_data"].to_string().trim_matches('"').to_string())
 }
 
 /// Validates that `command_args` has at least `required_count` arguments.

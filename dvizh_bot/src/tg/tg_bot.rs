@@ -186,7 +186,22 @@ pub async fn send_keyboard_msg(
     send_msg_internal(offset, req, params).await
 }
 
-pub async fn send_photo(
+pub async fn send_keyboard_reply_msg(
+    keyboard: &str,
+    offset: &mut i64,
+    req : &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let msg = req.get_msg()?;
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("reply_to_message_id", msg.message_id.to_string());
+    params.insert("reply_markup", keyboard.to_string());
+    
+    send_msg_internal(offset, req, params).await
+}
+
+pub async fn send_photo_msg(
     photo_url: &str,
     photo_tite: &str,
     offset: &mut i64,
@@ -198,6 +213,21 @@ pub async fn send_photo(
     params.insert("photo", photo_url.to_string());
     params.insert("caption", photo_tite.to_string());
     req.method = MsgType::SendPhoto;
+
+    send_msg_internal(offset, req, params).await
+}
+
+pub async fn edit_message_and_remove_keyboard(
+    offset: &mut i64,
+    req : &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let msg = req.get_msg()?;
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("message_id", msg.message_id.to_string());
+    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("reply_markup", "{}".to_string());
+    req.method = MsgType::EditMessageText;
 
     send_msg_internal(offset, req, params).await
 }
