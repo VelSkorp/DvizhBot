@@ -18,6 +18,5 @@
     "error_invalid_date": "Invalid date format. Please use the format DD.MM.YYYY.",
     "error_insufficient_arguments": "Invalid number of arguments. Please check the command format and try again.",
     "error_missing_arguments": "Missing required arguments for this command.",
-    "unknown": "Unknown command. Type /help for a list of available commands.",
     "wrong": "Wrong command."
 }

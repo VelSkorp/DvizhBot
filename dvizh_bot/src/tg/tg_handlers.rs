@@ -163,7 +163,8 @@ async fn handle_command(
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         Some(CommandType::Luck) => handle_luck_command(offset, req).await,
-        None => handle_unknown_command(offset, req).await,
+        // None => handle_unknown_command(offset, req).await,
+        None => Ok(serde_json::Value::Null),
     }
 }
 
@@ -350,20 +351,12 @@ async fn handle_astro_command(
     req.set_msg_text(text);
     let keyboard = json!({
         "inline_keyboard": [
-            [
-                { "text": "Aries", "callback_data": "zodiac_aries" },
-                { "text": "Taurus", "callback_data": "zodiac_taurus" },
-                { "text": "Gemini", "callback_data": "zodiac_gemini" },
-                { "text": "Cancer", "callback_data": "zodiac_cancer" },
-                { "text": "Leo", "callback_data": "zodiac_leo" },
-                { "text": "Virgo", "callback_data": "zodiac_virgo" },
-                { "text": "Libra", "callback_data": "zodiac_libra" },
-                { "text": "Scorpio", "callback_data": "zodiac_scorpio" },
-                { "text": "Sagittarius", "callback_data": "zodiac_sagittarius" },
-                { "text": "Capricorn", "callback_data": "zodiac_capricorn" },
-                { "text": "Aquarius", "callback_data": "zodiac_aquarius" },
-                { "text": "Pisces", "callback_data": "zodiac_pisces" }
-            ]
+            [{ "text": "Aries", "callback_data": "zodiac_aries" }, { "text": "Taurus", "callback_data": "zodiac_taurus" }],
+            [{ "text": "Gemini", "callback_data": "zodiac_gemini" }, { "text": "Cancer", "callback_data": "zodiac_cancer" }],
+            [{ "text": "Leo", "callback_data": "zodiac_leo" }, { "text": "Virgo", "callback_data": "zodiac_virgo" }],
+            [{ "text": "Libra", "callback_data": "zodiac_libra" }, { "text": "Scorpio", "callback_data": "zodiac_scorpio" }],
+            [{ "text": "Sagittarius", "callback_data": "zodiac_sagittarius" }, { "text": "Capricorn", "callback_data": "zodiac_capricorn" }],
+            [{ "text": "Aquarius", "callback_data": "zodiac_aquarius" }, { "text": "Pisces", "callback_data": "zodiac_pisces" }]
         ]
     }).to_string();
     
@@ -378,16 +371,6 @@ async fn handle_luck_command(
     // let text = req.get_translation_for("unknown").await?;
     req.set_msg_text("Удачи тебе по жизни! :)".to_string());
     send_reply_msg(offset, req).await
-}
-
-async fn handle_unknown_command(
-    offset: &mut i64, 
-    req: &mut MsgRequest
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    warn!("Unknown command was called");
-    let text = req.get_translation_for("unknown").await?;
-    req.set_msg_text(text);
-    send_msg(offset, req).await
 }
 
 async fn handle_callback_query(

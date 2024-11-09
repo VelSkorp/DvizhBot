@@ -18,6 +18,5 @@
     "error_invalid_date": "Nieprawidłowy format daty. Użyj formatu DD.MM.RRRR.",
     "error_insufficient_arguments": "Nieprawidłowa liczba argumentów. Sprawdź format polecenia i spróbuj ponownie.",
     "error_missing_arguments": "Brak wymaganych argumentów dla tego polecenia.",
-    "unknown": "Nieznane polecenie. Wpisz /help, aby wyświetlić listę dostępnych poleceń.",
     "wrong": "Nieprawidłowe polecenie."
 }
