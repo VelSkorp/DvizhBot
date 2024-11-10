@@ -4,7 +4,7 @@ use crate::db::repository::DvizhRepository;
 use crate::tg::tg_utils::{MsgType, msg_type_to_str};
 use crate::tg::tg_handlers::handle_message;
 use crate::tg::tg_objects::Message;
-use chrono::{Datelike, Local};
+use chrono::{Datelike, Local, NaiveDate, Utc};
 use tokio::time::{interval_at, Duration, Instant};
 use std::collections::HashMap;
 use reqwest::Client;
@@ -315,8 +315,7 @@ fn calc_seconds_until(target_hour: u32, target_minute: u32, target_second: u32) 
     duration.num_seconds() as u64
 }
 
-async fn perform_happy_birthday(app : &Application, dvizh_repo: &DvizhRepository, birthday: &str)
-{
+async fn perform_happy_birthday(app : &Application, dvizh_repo: &DvizhRepository, birthday: &str) {
     if let Ok(users) = dvizh_repo.get_users_by_birthday(&birthday) {
         for user in users {
             if let Ok(chats) = dvizh_repo.get_chats_for_user(&user.username) {
@@ -332,8 +331,7 @@ async fn perform_happy_birthday(app : &Application, dvizh_repo: &DvizhRepository
     }
 }
 
-async fn perform_events_reminder(app : &Application, dvizh_repo: &DvizhRepository)
-{
+async fn perform_events_reminder(app : &Application, dvizh_repo: &DvizhRepository) {
     if let Ok(events) = dvizh_repo.get_today_events() {
         for event in events {
             reminde_events(&app, &event).await;
@@ -343,15 +341,21 @@ async fn perform_events_reminder(app : &Application, dvizh_repo: &DvizhRepositor
     }
 }
 
-async fn reminde_events(app : &Application, event: &Event)
-{
+async fn reminde_events(app : &Application, event: &Event) {
+    let template = app.language_cache.lock().await
+        .get_translation_for_chat(&app.conf.db_path, event.group_id, "event_template")
+        .unwrap_or("📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n".to_string());
+
+    let message = template.replace("{title}", &event.title)
+        .replace("{date}", &event.date)
+        .replace("{location}", &event.location)
+        .replace("{description}", &event.description);
+
     // Formatting the message for the user
     let mut params = HashMap::new();
     params.insert("chat_id", event.group_id.to_string());
-    params.insert("text", format!(
-        "📅 *Event Title*: {}\n🗓 *Date*: {}\n📍 *Location*: {}\n📖 *Description*: {}\n",
-        event.title, event.date, event.location, event.description
-    ));
+    params.insert("text", message);
+
     // Sending a message to Telegram
     if let Err(e) = send_request(
         &app.client, &app.conf.tg_token, 
@@ -360,12 +364,24 @@ async fn reminde_events(app : &Application, event: &Event)
     }
 }
 
-async fn send_happy_birthday(app : &Application, user: &User, chat_id : i64)
-{
+async fn send_happy_birthday(app : &Application, user: &User, chat_id : i64) {
+    let template = app.language_cache.lock().await
+        .get_translation_for_chat(&app.conf.db_path, chat_id, "birthday_template")
+        .unwrap_or("Happy Birthday to {first_name} (@{username}) 🎉 You've turned {age} years old! May this year be filled with joy, success, and happy moments! 🥳".to_string());
+
+    let birth_date = NaiveDate::parse_from_str(&user.birthdate.clone().unwrap(), "%d.%m.%Y").ok().unwrap_or_default();
+    let today = Utc::now().date_naive();
+    let age = today.year() - birth_date.year();
+
+    let message = template.replace("{first_name}", &user.first_name.clone().unwrap_or("unknown :(".to_string()))
+        .replace("{username}", &user.username)
+        .replace("{age}", &age.to_string());
+
     // Formatting the message for the user
     let mut params: HashMap<&str, String> = HashMap::new();
     params.insert("chat_id", chat_id.to_string());
-    params.insert("text", format!("Happy Birthday, {} @{}", user.first_name.clone().unwrap_or("unknown :(".to_string()), user.username));
+    params.insert("text", message);
+
     // Sending a message to Telegram
     if let Err(e) = send_request(
         &app.client, &app.conf.tg_token, 

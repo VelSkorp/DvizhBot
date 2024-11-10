@@ -6,10 +6,12 @@
     "remeber_event": "I memorized this event",
     "no_upcoming_event": "There is no upcoming events.",
     "upcoming_event": "Upcoming events:",
-    "event_template": "📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n",
     "morning": "Good morning! 🌅",
     "night": "Good night! 🌙",
     "astro": "Please select your zodiac sign from the options below! 🌟",
+    
+    "birthday_template": "Happy Birthday to {first_name} (@{username}) 🎉 You've turned {age} years old! May this year be filled with joy, success, and happy moments! 🥳",
+    "event_template": "📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n",
 
     "error_not_admin": "You do not have the necessary permissions to perform this action. Only administrators are allowed.",
     "error_birthday": "Please provide your birthdate in the format DD.MM.YYYY.",

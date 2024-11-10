@@ -6,10 +6,12 @@
     "remeber_event": "Zapamiętałem tą imprezę",
     "no_upcoming_event": "Nie ma żadnych nadchodzących imprez.",
     "upcoming_event": "Nadchodzące imprezy:",
-    "event_template": "📅 *Tytuł imprezy*: {title}\n🗓 *Data*: {date}\n📍 *Lokalizacja*: {location}\n📖 *Opis*: {description}\n",
     "morning": "Miłego dnia! 🌅",
     "night": "Dobrej nocy! 🌙",
     "astro": "Wybierz swój znak zodiaku z poniższych opcji! 🌟",
+    
+    "birthday_template": "Wszystkiego najlepszego dla {first_name} (@{username}) 🎉 Skończyłeś {age} lat! Niech ten rok będzie pełen radości, sukcesów i szczęśliwych chwil! 🥳",
+    "event_template": "📅 *Tytuł imprezy*: {title}\n🗓 *Data*: {date}\n📍 *Lokalizacja*: {location}\n📖 *Opis*: {description}\n",
     
     "error_not_admin": "Nie masz uprawnień niezbędnych do wykonania tej czynności. Dozwolone są tylko uprawnienia administratora.",
     "error_birthday": "Podaj swoją datę urodzenia w formacie DD.MM.RRRR.",

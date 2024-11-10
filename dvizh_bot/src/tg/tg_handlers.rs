@@ -35,8 +35,7 @@ pub async fn handle_message(
                 }
             
                 // Check if the message is a command
-                if req.get_msg_text().starts_with("/") 
-                {
+                if req.get_msg_text().starts_with("/") {
                     if req.get_msg_text().len() == 1 {
                         handle_command(offset, None, None, &mut req).await?;
                         continue;
@@ -47,7 +46,6 @@ pub async fn handle_message(
                     let command = command_str.split('@').next().unwrap().trim();
                     debug!("Handle {} command", command);
                     handle_command(offset, command_str_to_type(command), Some(args), &mut req).await?;
-                    continue;
                 }
             }
         }
