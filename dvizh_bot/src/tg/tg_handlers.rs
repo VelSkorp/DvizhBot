@@ -161,7 +161,6 @@ async fn handle_command(
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         Some(CommandType::Luck) => handle_luck_command(offset, req).await,
-        // None => handle_unknown_command(offset, req).await,
         None => Ok(serde_json::Value::Null),
     }
 }
@@ -366,8 +365,8 @@ async fn handle_luck_command(
     req: &mut MsgRequest
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     warn!("Luck command was called");
-    // let text = req.get_translation_for("unknown").await?;
-    req.set_msg_text("Удачи тебе по жизни! :)".to_string());
+    let text = req.get_translation_for("luck").await?;
+    req.set_msg_text(text);
     send_reply_msg(offset, req).await
 }
 
@@ -380,6 +379,7 @@ async fn handle_callback_query(
 
     let callback_data = callback_query["data"].as_str().unwrap_or_default();
     let chat_id = callback_query["message"]["chat"]["id"].as_i64().unwrap();
+    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
 
     if callback_data.starts_with("lang_") {
         let new_language = match callback_data {
@@ -389,7 +389,6 @@ async fn handle_callback_query(
             _ => "en",
         };
 
-        let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
         dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
         req.update_group_language_code(chat_id).await?;
         remove_keyboard(offset, req).await?;
