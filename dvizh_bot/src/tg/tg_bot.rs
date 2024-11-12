@@ -87,7 +87,7 @@ pub async fn check_and_perform_daily_operations(app : Application) {
     // Execution time at 00:00
     let now = Local::now();
     let midnight = now.date_naive().succ_opt().unwrap().and_hms_opt(0, 0, 0);
-    let time_until_midnight = (midnight.unwrap_or_default() - now.naive_local()).num_seconds() as u64;
+    let time_until_midnight = ((midnight.unwrap_or_default() - now.naive_local()).num_seconds() + 60) as u64;
     
     // Running intervals
     let mut midnight_interval = interval_at(
