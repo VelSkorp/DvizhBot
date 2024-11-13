@@ -4,9 +4,10 @@ use crate::application::Application;
 use crate::tg::tg_bot::MsgRequest;
 use chrono::NaiveDate;
 use serde_json::Value;
+use std::time::Duration;
+use rust_bert::pipelines::translation::Language;
 use log::{debug, error};
 use scraper::{Html, Selector};
-use std::time::Duration;
 use headless_chrome::{Browser, LaunchOptions};
 
 #[derive(Debug)]
@@ -59,6 +60,15 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "astro" => Some(CommandType::Astro),
         "luck" => Some(CommandType::Luck),
         _ => None
+    }
+}
+
+pub fn language_code_to_language(code: &str) -> Language {
+    match code.to_lowercase().as_str() {
+        "en" => Language::English,
+        "ru" => Language::English,
+        "pl" => Language::Polish,
+        _ => Language::English
     }
 }
 
@@ -173,6 +183,13 @@ pub async fn get_horoscope(sign: &str) -> Result<String, Box<dyn std::error::Err
 
     let json: Value = serde_json::from_str(&response)?;
     Ok(json["data"]["horoscope_data"].to_string().trim_matches('"').to_string())
+}
+
+pub async fn translate_text(app: &Application, text: &str, target_lang: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let lang = language_code_to_language(target_lang);
+    let tanlation = app.translation_model.lock().await.translate(&[text], Language::English, lang)?;
+
+    Ok(tanlation.join(";"))
 }
 
 /// Validates that `command_args` has at least `required_count` arguments.

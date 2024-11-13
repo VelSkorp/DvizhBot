@@ -3,7 +3,7 @@ use crate::db::repository::DvizhRepository;
 use crate::tg::tg_objects::User;
 use crate::application::Application;
 use crate::tg::tg_bot::{get_chat_administrators, remove_keyboard, send_error_msg, send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_reply_msg, send_photo_msg, edit_message_and_remove_keyboard, MsgRequest};
-use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_memes, get_horoscope, parse_command_arguments, CommandType};
+use crate::tg::tg_utils::{command_str_to_type, create_msg_request, parse_memes, get_horoscope, translate_text, parse_command_arguments, CommandType};
 use rand::Rng;
 use serde_json::{json, Error, Value};
 use log::{debug, warn, error};
@@ -408,7 +408,11 @@ async fn handle_callback_query(
             "zodiac_pisces" => "Pisces",
             _ => "Unnown",
         };
-        let message = format!("You chose: {}\r\nYor horoscope for today is: {}", zodiac_sign, get_horoscope(zodiac_sign).await?);
+        let mut message = format!("You chose: {}\r\nYor horoscope for today is: {}", zodiac_sign, get_horoscope(zodiac_sign).await?);
+        let lang_code = dvizh_repo.get_chat_language_code(chat_id)?;
+        if lang_code != "en" {
+            message = translate_text(&req.app, &message, &lang_code).await?;
+        }
         req.set_msg_text(message);
         edit_message_and_remove_keyboard(offset, req).await?;
     }

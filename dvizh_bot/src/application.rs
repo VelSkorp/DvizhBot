@@ -12,9 +12,11 @@ use reqwest::Client;
 use std::str::FromStr;
 use std::error::Error;
 use env_logger;
+use derivative::Derivative;
 use rust_bert::pipelines::translation::{TranslationModel, Language, TranslationModelBuilder};
 
-#[derive(Debug, Clone)]
+#[derive(Derivative, Clone)]
+#[derivative(Debug)]
 pub struct Application {
     pub client: Client,
     pub conf: BotConfig,
@@ -22,7 +24,8 @@ pub struct Application {
     pub log_level: &'static str,
     pub language_cache: Arc<Mutex<LanguageCache>>,
     pub meme_cache: Arc<Mutex<Vec<String>>>,
-    pub translation_model: Arc<TranslationModel>
+    #[derivative(Debug = "ignore")]
+    pub translation_model: Arc<Mutex<TranslationModel>>
 }
 
 impl Application {
@@ -48,10 +51,10 @@ impl Application {
 
         debug!("Args: {}", arg_line);
 
-        let translation_model = TranslationModelBuilder::new()
+        let translation_model = Arc::new(Mutex::new(TranslationModelBuilder::new()
             .with_source_languages(vec![Language::English])
             .with_target_languages(vec![Language::Russian])
-            .create_model()?;
+            .create_model()?));
 
         Ok(Application { client: cli, conf, args, log_level, language_cache, meme_cache, translation_model })
     }
