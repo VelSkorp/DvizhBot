@@ -66,7 +66,7 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
 pub fn language_code_to_language(code: &str) -> Language {
     match code.to_lowercase().as_str() {
         "en" => Language::English,
-        "ru" => Language::English,
+        "ru" => Language::Russian,
         "pl" => Language::Polish,
         _ => Language::English
     }
