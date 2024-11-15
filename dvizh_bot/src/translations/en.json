@@ -10,6 +10,7 @@
     "night": "Good night! 🌙",
     "luck": "Good luck in life! :)",
     "astro": "Please select your zodiac sign from the options below! 🌟",
+    "thinking": "Zastanawiam się... 🤔",
     
     "birthday_template": "Happy Birthday to {first_name} (@{username}) 🎉 You've turned {age} years old! May this year be filled with joy, success, and happy moments! 🥳",
     "event_template": "📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n",

@@ -408,7 +408,12 @@ async fn handle_callback_query(
             "zodiac_pisces" => "Pisces",
             _ => "Unnown",
         };
-        let mut message = format!("You chose: {}\r\nYor horoscope for today is: {}", zodiac_sign, get_horoscope(zodiac_sign).await?);
+        
+        let text = req.get_translation_for("thinking").await?;
+        req.set_msg_text(text);
+        edit_message_and_remove_keyboard(offset, req).await?;
+
+        let mut message = format!("{} your horoscope for today: {}", zodiac_sign, get_horoscope(zodiac_sign).await?);
         let lang_code = dvizh_repo.get_chat_language_code(chat_id)?;
         if lang_code != "en" {
             message = translate_text(&req.app, &message, &lang_code).await?;
