@@ -8,6 +8,9 @@ use rand::Rng;
 use serde_json::{json, Error, Value};
 use log::{debug, warn, error};
 
+use rust_bert::pipelines::common::ModelType;
+use rust_bert::pipelines::text_generation::{TextGenerationConfig, TextGenerationModel};
+
 use super::tg_utils::{validate_argument_count, validate_date_format};
 
 pub async fn handle_message(
@@ -161,6 +164,16 @@ async fn handle_command(
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         Some(CommandType::Luck) => handle_luck_command(offset, req).await,
+        Some(CommandType::Test) => {
+            match validate_argument_count(&command_args, 1) {
+                Ok(args) => handle_test_command(args, offset, req).await,
+                Err(error_key) => {
+                    let text = req.get_translation_for(&error_key).await?;
+                    req.set_msg_text(text);
+                    send_msg(offset, req).await
+                }
+            }
+        },
         None => Ok(serde_json::Value::Null),
     }
 }
@@ -367,6 +380,34 @@ async fn handle_luck_command(
     warn!("Luck command was called");
     let text = req.get_translation_for("luck").await?;
     req.set_msg_text(text);
+    send_reply_msg(offset, req).await
+}
+
+async fn handle_test_command(
+    text: &[String],
+    offset: &mut i64, 
+    req: &mut MsgRequest
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    warn!("Test command was called");
+
+    let generate_config = TextGenerationConfig {
+        model_type: ModelType::GPT2,
+        max_length: Some(30),
+        do_sample: false,
+        num_beams: 1,
+        temperature: 1.0,
+        num_return_sequences: 1,
+        ..Default::default()
+    };
+    let model = TextGenerationModel::new(generate_config)?;
+
+    let output = model.generate(text, None)?;
+
+    for sentence in output {
+        req.set_msg_text(format!("{:#?}", sentence));
+        send_reply_msg(offset, req).await?;
+    }
+    req.set_msg_text("test end".to_string());
     send_reply_msg(offset, req).await
 }
 
