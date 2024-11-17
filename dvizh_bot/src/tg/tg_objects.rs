@@ -14,7 +14,7 @@ pub struct Message {
     pub message_id: i64,
     pub text: Option<String>,
     pub reply_markup: Option<Value>,
-    pub new_chat_member: Option<User>
+    pub new_chat_member: Option<User>,
 }
 
 impl Message {
@@ -44,7 +44,7 @@ impl Message {
                 is_bot: false,
                 language_code: Some("".to_string()),
                 username: "".to_string(),
-            })
+            }),
         }
     }
 }
@@ -56,7 +56,7 @@ pub struct Chat {
     pub chat_type: String,
     pub first_name: Option<String>,
     pub username: Option<String>,
-    pub title: Option<String>
+    pub title: Option<String>,
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]

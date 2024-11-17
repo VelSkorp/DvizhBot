@@ -1,14 +1,14 @@
-use crate::tg::tg_handlers::handle_error;
-use crate::tg::tg_objects::Message;
 use crate::application::Application;
 use crate::tg::tg_bot::MsgRequest;
+use crate::tg::tg_handlers::handle_error;
+use crate::tg::tg_objects::Message;
 use chrono::NaiveDate;
+use headless_chrome::{Browser, LaunchOptions};
+use log::{debug, error};
+use rust_bert::pipelines::translation::Language;
+use scraper::{Html, Selector};
 use serde_json::Value;
 use std::time::Duration;
-use rust_bert::pipelines::translation::Language;
-use log::{debug, error};
-use scraper::{Html, Selector};
-use headless_chrome::{Browser, LaunchOptions};
 
 #[derive(Debug)]
 pub enum MsgType {
@@ -35,8 +35,7 @@ pub enum CommandType {
     Test,
 }
 
-pub fn msg_type_to_str(t: &MsgType) -> &'static str 
-{
+pub fn msg_type_to_str(t: &MsgType) -> &'static str {
     match t {
         MsgType::GetMe => "getMe",
         MsgType::GetUpdates => "getUpdates",
@@ -61,7 +60,7 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "astro" => Some(CommandType::Astro),
         "luck" => Some(CommandType::Luck),
         "test" => Some(CommandType::Test),
-        _ => None
+        _ => None,
     }
 }
 
@@ -70,7 +69,7 @@ pub fn language_code_to_language(code: &str) -> Language {
         "en" => Language::English,
         "ru" => Language::Russian,
         "pl" => Language::Polish,
-        _ => Language::English
+        _ => Language::English,
     }
 }
 
@@ -134,7 +133,7 @@ pub fn parse_command_arguments(msg_text: &str) -> Vec<String> {
 
 pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     // Initialize the headless browser
-    let browser = Browser::new(LaunchOptions{
+    let browser = Browser::new(LaunchOptions {
         headless: true,
         ..Default::default()
     })?;
@@ -144,10 +143,7 @@ pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
     tab.wait_until_navigated()?;
     tab.wait_for_element("div img[src*='storage/meme']")?;
-    tab.evaluate(
-        "window.scrollTo(0, document.body.scrollHeight);",
-        false,
-    )?;
+    tab.evaluate("window.scrollTo(0, document.body.scrollHeight);", false)?;
     std::thread::sleep(Duration::from_secs(2));
     let html = tab.get_content()?;
 
@@ -174,7 +170,10 @@ pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
 pub async fn get_horoscope(sign: &str) -> Result<String, Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
-    let url = format!("https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign={}&day=TODAY", sign);
+    let url = format!(
+        "https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign={}&day=TODAY",
+        sign
+    );
     let response = client
         .get(&url)
         .header("accept", "application/json")
@@ -184,19 +183,35 @@ pub async fn get_horoscope(sign: &str) -> Result<String, Box<dyn std::error::Err
         .await?;
 
     let json: Value = serde_json::from_str(&response)?;
-    Ok(json["data"]["horoscope_data"].to_string().trim_matches('"').to_string())
+    Ok(json["data"]["horoscope_data"]
+        .to_string()
+        .trim_matches('"')
+        .to_string())
 }
 
-pub async fn translate_text(app: &Application, text: &str, target_lang: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn translate_text(
+    app: &Application,
+    text: &str,
+    target_lang: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
     let lang = language_code_to_language(target_lang);
-    let tanlation = app.translation_model.lock().await.translate(&[text], Language::English, lang)?;
+    let tanlation =
+        app.translation_model
+            .lock()
+            .await
+            .translate(&[text], Language::English, lang)?;
 
     Ok(tanlation.join(";"))
 }
 
 /// Validates that `command_args` has at least `required_count` arguments.
-pub fn validate_argument_count(command_args: &Option<Vec<String>>, required_count: usize) -> Result<&Vec<String>, String> {
-    let args = command_args.as_ref().ok_or_else(|| "error_missing_arguments".to_string())?;
+pub fn validate_argument_count(
+    command_args: &Option<Vec<String>>,
+    required_count: usize,
+) -> Result<&Vec<String>, String> {
+    let args = command_args
+        .as_ref()
+        .ok_or_else(|| "error_missing_arguments".to_string())?;
     if args.len() < required_count || args.len() > required_count {
         return Err("error_insufficient_arguments".to_string());
     }
@@ -205,8 +220,7 @@ pub fn validate_argument_count(command_args: &Option<Vec<String>>, required_coun
 
 /// Validates that `date_str` matches the `DD.MM.YYYY` format.
 pub fn validate_date_format(date_str: &str) -> Result<NaiveDate, String> {
-    NaiveDate::parse_from_str(date_str, "%d.%m.%Y")
-        .map_err(|_| "error_invalid_date".to_string())
+    NaiveDate::parse_from_str(date_str, "%d.%m.%Y").map_err(|_| "error_invalid_date".to_string())
 }
 
 pub async fn create_msg_request(
@@ -244,12 +258,7 @@ pub async fn create_msg_request(
     };
 
     // Create and return `MsgRequest` on success
-    let req = MsgRequest::new(
-        app.clone(),
-        update_id,
-        MsgType::SendMessage,
-        msg,
-    );
+    let req = MsgRequest::new(app.clone(), update_id, MsgType::SendMessage, msg);
 
     Ok(Some(req))
 }

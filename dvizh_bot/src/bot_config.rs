@@ -10,9 +10,12 @@ pub struct BotConfig {
 
 pub fn load_config() -> BotConfig {
     let builder = Config::builder();
-    let settings = builder.add_source(File::with_name("config"))
+    let settings = builder
+        .add_source(File::with_name("config"))
         .build()
         .expect("Failed to load the configuration");
 
-        settings.try_deserialize::<BotConfig>().expect("Failed to convert the configuration")
+    settings
+        .try_deserialize::<BotConfig>()
+        .expect("Failed to convert the configuration")
 }

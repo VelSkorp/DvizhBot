@@ -1,19 +1,19 @@
 use crate::args;
 use crate::bot_config;
 use crate::LanguageCache;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use args::Arguments;
+use args::Verbose;
 use bot_config::BotConfig;
 use clap::Parser;
-use args::Verbose;
-use args::Arguments;
+use derivative::Derivative;
+use env_logger;
 use log::debug;
 use reqwest::Client;
-use std::str::FromStr;
+use rust_bert::pipelines::translation::{Language, TranslationModel, TranslationModelBuilder};
 use std::error::Error;
-use env_logger;
-use derivative::Derivative;
-use rust_bert::pipelines::translation::{TranslationModel, Language, TranslationModelBuilder};
+use std::str::FromStr;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
@@ -25,7 +25,7 @@ pub struct Application {
     pub language_cache: Arc<Mutex<LanguageCache>>,
     pub meme_cache: Arc<Mutex<Vec<String>>>,
     #[derivative(Debug = "ignore")]
-    pub translation_model: Arc<Mutex<TranslationModel>>
+    pub translation_model: Arc<Mutex<TranslationModel>>,
 }
 
 impl Application {
@@ -36,7 +36,11 @@ impl Application {
         let conf = bot_config::load_config();
         let args = args::Arguments::parse();
 
-        let arg_line = std::env::args().skip(1).map(|arg| arg.to_string()).collect::<Vec<String>>().join(" ");
+        let arg_line = std::env::args()
+            .skip(1)
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>()
+            .join(" ");
 
         let log_level = match args.verbose {
             Verbose::Debug => "debug",
@@ -51,11 +55,21 @@ impl Application {
 
         debug!("Args: {}", arg_line);
 
-        let translation_model = Arc::new(Mutex::new(TranslationModelBuilder::new()
-            .with_source_languages(vec![Language::English])
-            .with_target_languages(vec![Language::Russian])
-            .create_model()?));
+        let translation_model = Arc::new(Mutex::new(
+            TranslationModelBuilder::new()
+                .with_source_languages(vec![Language::English])
+                .with_target_languages(vec![Language::Russian])
+                .create_model()?,
+        ));
 
-        Ok(Application { client: cli, conf, args, log_level, language_cache, meme_cache, translation_model })
+        Ok(Application {
+            client: cli,
+            conf,
+            args,
+            log_level,
+            language_cache,
+            meme_cache,
+            translation_model,
+        })
     }
 }

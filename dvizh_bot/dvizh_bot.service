@@ -5,6 +5,7 @@ After=network.target
 [Service]
 ExecStart=/home/ubuntu/DvizhBot/dvizh_bot/target/release/dvizh_bot
 WorkingDirectory=/home/ubuntu/DvizhBot/dvizh_bot/
+Environment=LD_LIBRARY_PATH=/home/ubuntu/libtorch/lib:/usr/local/lib
 Restart=always
 User=ubuntu
 
