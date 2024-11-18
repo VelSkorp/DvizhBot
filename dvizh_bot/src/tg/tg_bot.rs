@@ -2,79 +2,14 @@ use crate::application::Application;
 use crate::db::db_objects::{Event, User};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_handlers::handle_message;
-use crate::tg::tg_objects::Message;
-use crate::tg::tg_utils::{msg_type_to_str, MsgType};
+use crate::tg::msg_request::MsgRequest;
+use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
 use chrono::{Datelike, Local, NaiveDate, Utc};
 use log::{debug, error};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::error::Error;
 use tokio::time::{interval_at, Duration, Instant};
-
-#[derive(Debug)]
-pub struct MsgRequest {
-    pub app: Application,
-    pub update_id: i64,
-    pub method: MsgType,
-    pub msg: Option<Message>,
-}
-
-impl MsgRequest {
-    pub fn new(app: Application, update_id: i64, method: MsgType, msg: Option<Message>) -> Self {
-        MsgRequest {
-            app,
-            update_id,
-            method,
-            msg,
-        }
-    }
-
-    pub fn get_msg_text(&self) -> String {
-        self.get_msg().unwrap_or_default().text.unwrap_or_default()
-    }
-
-    pub async fn get_translation_for(
-        &mut self,
-        key: &str,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        Ok(self
-            .app
-            .language_cache
-            .lock()
-            .await
-            .get_translation_for_chat(
-                &self.app.conf.db_path,
-                self.get_msg().unwrap().chat.id,
-                key,
-            )?)
-    }
-
-    pub async fn update_group_language_code(
-        &mut self,
-        group_id: i64,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        Ok(self
-            .app
-            .language_cache
-            .lock()
-            .await
-            .update_group_language_code_cache(&self.app.conf.db_path, group_id)?)
-    }
-
-    pub fn get_db_path(&mut self) -> Result<String, Box<dyn std::error::Error>> {
-        Ok(self.app.conf.db_path.clone())
-    }
-
-    pub fn get_msg(&self) -> Result<Message, &'static str> {
-        self.msg.as_ref().cloned().ok_or("Have no field in Message")
-    }
-
-    pub fn set_msg_text(&mut self, value: String) {
-        if let Some(msg) = self.msg.as_mut() {
-            msg.text = Some(value);
-        }
-    }
-}
 
 pub async fn run(app: Application, t: &MsgType) {
     debug!("Bot run");

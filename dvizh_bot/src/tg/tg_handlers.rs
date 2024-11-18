@@ -3,14 +3,13 @@ use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
 use crate::tg::tg_bot::{
     edit_message_and_remove_keyboard, get_chat_administrators, remove_keyboard, send_error_msg,
-    send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
-    MsgRequest,
-};
+    send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg};
 use crate::tg::tg_objects::User;
-use crate::tg::tg_utils::{
-    command_str_to_type, create_msg_request, get_horoscope, parse_command_arguments, parse_memes,
-    translate_text, validate_argument_count, validate_date_format, CommandType,
-};
+use crate::tg::msg_request::{create_msg_request, MsgRequest};
+use crate::tg::command_utils::{command_str_to_type, parse_command_arguments, CommandType};
+use crate::tg::language_utils::translate_text;
+use crate::tg::tg_utils::{get_horoscope, parse_memes};
+use crate::validations::{validate_argument_count, validate_date_format};
 use log::{debug, error};
 use rand::Rng;
 use serde_json::{json, Error, Value};
@@ -410,7 +409,7 @@ async fn handle_test_command(
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     debug!("Test command was called");
 
-    req.set_msg_text("test end".to_string());
+    req.set_msg_text(text.join(";"));
     send_reply_msg(offset, req).await
 }
 

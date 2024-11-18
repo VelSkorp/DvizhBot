@@ -6,7 +6,7 @@ use std::{
 use super::db_objects::{Chat, Event, User};
 use chrono::Local;
 use log::debug;
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, Result, Error};
 
 #[derive(Debug)]
 pub struct DvizhRepository {
@@ -14,14 +14,14 @@ pub struct DvizhRepository {
 }
 
 impl DvizhRepository {
-    pub fn new(db_path: &str) -> Result<Self> {
+    pub fn new(db_path: &str) -> Result<Self, Error> {
         let conn = Connection::open(db_path)?;
         Ok(DvizhRepository {
             connection: Arc::new(Mutex::new(conn)),
         })
     }
 
-    pub fn add_or_update_user(&self, user: User, chat_id: i64) -> Result<()> {
+    pub fn add_or_update_user(&self, user: User, chat_id: i64) -> Result<(), Error> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO User (username, first_name, birthdate, language_code)
                 VALUES (?1, ?2, ?3, ?4)
@@ -39,7 +39,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn add_or_update_event(&self, event: Event) -> Result<()> {
+    pub fn add_or_update_event(&self, event: Event) -> Result<(), Error> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO Events (group_id, title, date, location, description)
                 VALUES (?1, ?2, ?3, ?4, ?5)
@@ -55,7 +55,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn add_chat(&self, chat: Chat) -> Result<()> {
+    pub fn add_chat(&self, chat: Chat) -> Result<(), Error> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO Chat (id, title, language_code)
             VALUES (?1, ?2, ?3)
@@ -70,7 +70,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn update_chat_language(&self, chat_id: i64, new_language: String) -> Result<()> {
+    pub fn update_chat_language(&self, chat_id: i64, new_language: String) -> Result<(), Error> {
         let conn = self.connection.lock().unwrap();
         conn.execute(
             "UPDATE Chat SET language_code = ?1 WHERE id = ?2",
@@ -79,7 +79,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn get_users_by_birthday(&self, birthday: &str) -> Result<Vec<User>> {
+    pub fn get_users_by_birthday(&self, birthday: &str) -> Result<Vec<User>, Error> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT username,
@@ -105,7 +105,7 @@ impl DvizhRepository {
         Ok(users)
     }
 
-    pub fn get_chats_for_user(&self, user_id: &str) -> Result<Vec<i64>> {
+    pub fn get_chats_for_user(&self, user_id: &str) -> Result<Vec<i64>, Error> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare("SELECT group_id FROM Members WHERE user_id = ?1")?;
 
@@ -119,7 +119,7 @@ impl DvizhRepository {
         Ok(chat_ids)
     }
 
-    pub fn get_all_chat_ids(&self) -> Result<Vec<i64>> {
+    pub fn get_all_chat_ids(&self) -> Result<Vec<i64>, Error> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id FROM Chat")?;
 
@@ -133,7 +133,7 @@ impl DvizhRepository {
         Ok(chat_ids)
     }
 
-    pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
+    pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>, Error> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT group_id, title, date, location, description
@@ -157,7 +157,7 @@ impl DvizhRepository {
         Ok(events)
     }
 
-    pub fn get_today_events(&self) -> Result<Vec<Event>> {
+    pub fn get_today_events(&self) -> Result<Vec<Event>, Error> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT group_id, title, location, date, description
@@ -185,7 +185,7 @@ impl DvizhRepository {
         Ok(users)
     }
 
-    pub fn get_chat_language_code(&self, group_id: i64) -> Result<String> {
+    pub fn get_chat_language_code(&self, group_id: i64) -> Result<String, Error> {
         let conn = self.connection.lock().unwrap();
         let mut stmt = conn.prepare("SELECT language_code FROM Chat WHERE id = ?1")?;
         let code = stmt
@@ -197,7 +197,7 @@ impl DvizhRepository {
         Ok(code)
     }
 
-    pub fn add_admin(&self, user_id: &str, group_id: i64) -> Result<()> {
+    pub fn add_admin(&self, user_id: &str, group_id: i64) -> Result<(), Error> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO Admins (group_id, user_id)
             VALUES (?1, ?2)
@@ -210,7 +210,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn is_not_admin(&self, user_id: &str, group_id: i64) -> Result<bool> {
+    pub fn is_not_admin(&self, user_id: &str, group_id: i64) -> Result<bool, Error> {
         let connection = self.connection.lock().unwrap();
         let mut stmt = connection
             .prepare("SELECT 1 FROM Admins WHERE group_id = ? AND user_id = ? LIMIT 1")?;
@@ -220,7 +220,7 @@ impl DvizhRepository {
         Ok(!stmt.exists(params![group_id, user_id])?)
     }
 
-    fn add_membership(&self, user_id: &str, group_id: i64) -> Result<()> {
+    fn add_membership(&self, user_id: &str, group_id: i64) -> Result<(), Error> {
         self.connection.lock().unwrap().execute(
             "INSERT INTO Members (group_id, user_id)
             VALUES (?1, ?2)

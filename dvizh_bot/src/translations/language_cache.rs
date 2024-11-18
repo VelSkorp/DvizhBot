@@ -2,6 +2,7 @@ use crate::db::repository::DvizhRepository;
 use log::debug;
 use rusqlite::Result;
 use std::collections::HashMap;
+use std::io::Error;
 
 #[derive(Debug, Clone)]
 pub struct LanguageCache {
@@ -22,7 +23,7 @@ impl LanguageCache {
         db_path: &str,
         group_id: i64,
         key: &str,
-    ) -> Result<String> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         if !self.chat_language_cache.contains_key(&group_id) {
             debug!("Load {group_id} group language code cache");
             self.update_group_language_code_cache(db_path, group_id)?;
@@ -52,18 +53,16 @@ impl LanguageCache {
         Ok(translation)
     }
 
-    pub fn update_group_language_code_cache(&mut self, db_path: &str, group_id: i64) -> Result<()> {
+    pub fn update_group_language_code_cache(&mut self, db_path: &str, group_id: i64) -> Result<(), Box<dyn std::error::Error>> {
         let dvizh_repo = DvizhRepository::new(db_path)?;
         let lang_code = dvizh_repo.get_chat_language_code(group_id)?;
         self.chat_language_cache.insert(group_id, lang_code.clone());
         Ok(())
     }
 
-    fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, String>> {
+    fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, String>, Error> {
         let file_path = format!("src/translations/{lang_code}.json");
-        let data = std::fs::read_to_string(&file_path).expect("Unable to read translation file");
-        let translations: HashMap<String, String> =
-            serde_json::from_str(&data).expect("Error parsing translation file");
-        Ok(translations)
+        let data = std::fs::read_to_string(&file_path)?;
+        Ok(serde_json::from_str(&data)?)
     }
 }

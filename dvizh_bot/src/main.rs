@@ -1,10 +1,14 @@
 mod args;
 mod bot_config;
 mod tg {
+    pub mod msg_request;
     pub mod tg_bot;
     pub mod tg_handlers;
     pub mod tg_objects;
     pub mod tg_utils;
+    pub mod msg_type_utils;
+    pub mod command_utils;
+    pub mod language_utils;
 }
 mod db {
     pub mod db_objects;
@@ -15,13 +19,14 @@ mod errors;
 mod translations {
     pub mod language_cache;
 }
+mod validations;
 
 pub use application::Application;
 pub use bot_config::BotConfig;
 pub use std::error::Error;
 use tg::tg_bot::check_and_perform_daily_operations;
 pub use tg::tg_bot::run;
-pub use tg::tg_utils::MsgType;
+pub use tg::msg_type_utils::MsgType;
 pub use translations::language_cache::LanguageCache;
 
 #[tokio::main]
