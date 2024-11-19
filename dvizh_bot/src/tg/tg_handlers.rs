@@ -1,14 +1,15 @@
 use crate::application::Application;
 use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
-use crate::tg::tg_bot::{
-    edit_message_and_remove_keyboard, get_chat_administrators, remove_keyboard, send_error_msg,
-    send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg};
-use crate::tg::tg_objects::User;
-use crate::tg::msg_request::{create_msg_request, MsgRequest};
 use crate::tg::command_utils::{command_str_to_type, parse_command_arguments, CommandType};
 use crate::tg::language_utils::translate_text;
-use crate::tg::tg_utils::{get_horoscope, parse_memes};
+use crate::tg::messaging::{
+    edit_message_and_remove_keyboard, remove_keyboard, send_error_msg, send_keyboard_msg,
+    send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
+};
+use crate::tg::msg_request::{create_msg_request, MsgRequest};
+use crate::tg::tg_objects::User;
+use crate::tg::tg_utils::{get_horoscope, parse_memes, get_chat_administrators};
 use crate::validations::{validate_argument_count, validate_date_format};
 use log::{debug, error};
 use rand::Rng;

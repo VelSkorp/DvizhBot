@@ -3,6 +3,7 @@ use log::debug;
 use scraper::{Html, Selector};
 use serde_json::Value;
 use std::time::Duration;
+use chrono::Local;
 
 pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     // Initialize the headless browser
@@ -60,4 +61,57 @@ pub async fn get_horoscope(sign: &str) -> Result<String, Box<dyn std::error::Err
         .to_string()
         .trim_matches('"')
         .to_string())
+}
+
+// Function for calculating the time to the next specific time in seconds
+pub fn calc_seconds_until(target_hour: u32, target_minute: u32, target_second: u32) -> u64 {
+    let now = Local::now();
+    let target_time = now
+        .date_naive()
+        .and_hms_opt(target_hour, target_minute, target_second)
+        .unwrap();
+    let duration = if now.time() < target_time.time() {
+        target_time - now.naive_local()
+    } else {
+        target_time + chrono::Duration::days(1) - now.naive_local()
+    };
+    duration.num_seconds() as u64
+}
+
+pub async fn get_chat_administrators(
+    client: &Client,
+    api_token: &str,
+    chat_id: i64,
+) -> Result<Vec<User>, Box<dyn Error>> {
+    let mut params = HashMap::new();
+    params.insert("chat_id", chat_id.to_string());
+
+    let response = send_request(
+        client,
+        api_token,
+        msg_type_to_str(&MsgType::GetChatAdministrators),
+        &params,
+    )
+    .await?;
+
+    if response["ok"].as_bool().unwrap_or(false) {
+        let admins = response["result"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|admin| {
+                let user = &admin["user"];
+
+                Some(User {
+                    username: user["username"].as_str()?.to_string(),
+                    first_name: user["first_name"].as_str().map(|s| s.to_string()),
+                    birthdate: None,
+                    language_code: user["language_code"].as_str().map(|s| s.to_string()),
+                })
+            })
+            .collect();
+        Ok(admins)
+    } else {
+        Err("Failed to retrieve chat administrators".into())
+    }
 }

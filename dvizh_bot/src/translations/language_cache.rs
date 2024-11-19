@@ -53,14 +53,21 @@ impl LanguageCache {
         Ok(translation)
     }
 
-    pub fn update_group_language_code_cache(&mut self, db_path: &str, group_id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn update_group_language_code_cache(
+        &mut self,
+        db_path: &str,
+        group_id: i64,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let dvizh_repo = DvizhRepository::new(db_path)?;
         let lang_code = dvizh_repo.get_chat_language_code(group_id)?;
         self.chat_language_cache.insert(group_id, lang_code.clone());
         Ok(())
     }
 
-    fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, String>, Error> {
+    fn load_translations_for_language(
+        &self,
+        lang_code: &str,
+    ) -> Result<HashMap<String, String>, Error> {
         let file_path = format!("src/translations/{lang_code}.json");
         let data = std::fs::read_to_string(&file_path)?;
         Ok(serde_json::from_str(&data)?)

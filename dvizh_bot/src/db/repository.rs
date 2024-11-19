@@ -6,7 +6,7 @@ use std::{
 use super::db_objects::{Chat, Event, User};
 use chrono::Local;
 use log::debug;
-use rusqlite::{params, Connection, Result, Error};
+use rusqlite::{params, Connection, Error, Result};
 
 #[derive(Debug)]
 pub struct DvizhRepository {
