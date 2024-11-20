@@ -1,17 +1,14 @@
 use crate::application::Application;
-use crate::db::db_objects::User;
 use crate::db::repository::DvizhRepository;
+use crate::tg::events::{perform_events_reminder, perform_happy_birthday, send_daily_greeting};
+use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
 use crate::tg::tg_handlers::handle_message;
+use crate::tg::tg_utils::calc_seconds_until;
 use chrono::{Datelike, Local};
-use crate::messaging::send_request;
-use crate::tg_utils::calc_seconds_until;
 use log::{debug, error};
-use reqwest::Client;
 use std::collections::HashMap;
-use std::error::Error;
 use tokio::time::{interval_at, Duration, Instant};
-use crate::events::{perform_events_reminder, perform_happy_birthday, send_daily_greeting};
 
 pub async fn run(app: Application, t: &MsgType) {
     debug!("Bot run");

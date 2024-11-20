@@ -1,9 +1,15 @@
+use crate::db::db_objects::User;
+use crate::tg::messaging::send_request;
+use crate::tg::msg_type_utils::msg_type_to_str;
+use crate::MsgType;
+use chrono::Local;
 use headless_chrome::{Browser, LaunchOptions};
 use log::debug;
+use reqwest::Client;
 use scraper::{Html, Selector};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::time::Duration;
-use chrono::Local;
 
 pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     // Initialize the headless browser
@@ -82,7 +88,7 @@ pub async fn get_chat_administrators(
     client: &Client,
     api_token: &str,
     chat_id: i64,
-) -> Result<Vec<User>, Box<dyn Error>> {
+) -> Result<Vec<User>, Box<dyn std::error::Error>> {
     let mut params = HashMap::new();
     params.insert("chat_id", chat_id.to_string());
 

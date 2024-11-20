@@ -9,7 +9,7 @@ use crate::tg::messaging::{
 };
 use crate::tg::msg_request::{create_msg_request, MsgRequest};
 use crate::tg::tg_objects::User;
-use crate::tg::tg_utils::{get_horoscope, parse_memes, get_chat_administrators};
+use crate::tg::tg_utils::{get_chat_administrators, get_horoscope, parse_memes};
 use crate::validations::{validate_argument_count, validate_date_format};
 use log::{debug, error};
 use rand::Rng;

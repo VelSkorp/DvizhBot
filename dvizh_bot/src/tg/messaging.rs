@@ -1,8 +1,8 @@
 use crate::tg::msg_request::MsgRequest;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
 use log::debug;
-use std::collections::HashMap;
 use reqwest::Client;
+use std::collections::HashMap;
 
 pub async fn send_error_msg(
     offset: &mut i64,
@@ -115,7 +115,7 @@ pub async fn remove_keyboard(
     send_msg_internal(offset, req, params).await
 }
 
-async fn send_request(
+pub async fn send_request(
     client: &Client,
     api_token: &str,
     method: &str,

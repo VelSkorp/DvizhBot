@@ -1,8 +1,8 @@
 use crate::application::Application;
 use crate::db::db_objects::{Event, User};
 use crate::db::repository::DvizhRepository;
+use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
-use crate::messaging::send_request;
 use chrono::{Datelike, NaiveDate, Utc};
 use log::{debug, error};
 use std::collections::HashMap;
