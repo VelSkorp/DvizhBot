@@ -1,129 +1,17 @@
-use crate::application::Application;
 use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::db::repository::DvizhRepository;
-use crate::tg::command_utils::{command_str_to_type, parse_command_arguments, CommandType};
-use crate::tg::language_utils::translate_text;
+use crate::tg::command_utils::CommandType;
 use crate::tg::messaging::{
-    edit_message_and_remove_keyboard, remove_keyboard, send_error_msg, send_keyboard_msg,
-    send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
+    send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
 };
-use crate::tg::msg_request::{create_msg_request, MsgRequest};
-use crate::tg::tg_objects::User;
-use crate::tg::tg_utils::{get_chat_administrators, get_horoscope, parse_memes};
+use crate::tg::msg_request::MsgRequest;
+use crate::tg::tg_utils::parse_memes;
 use crate::validations::{validate_argument_count, validate_date_format};
-use log::{debug, error};
+use log::debug;
 use rand::Rng;
-use serde_json::{json, Error, Value};
+use serde_json::json;
 
-pub async fn handle_message(
-    app: Application,
-    response_results: &Vec<Value>,
-    offset: &mut i64,
-) -> Result<(), Box<dyn std::error::Error>> {
-    for res in response_results {
-        debug!("{res:?}");
-
-        if let Some(callback_query) = res.get("callback_query") {
-            // Use `create_msg_request` for "callback_query"
-            if let Some(message) = callback_query.get("message") {
-                if let Some(mut req) =
-                    create_msg_request(&app, message, res["update_id"].as_i64().unwrap(), offset)
-                        .await?
-                {
-                    handle_callback_query(callback_query, offset, &mut req).await?;
-                }
-            }
-        } else if let Some(message) = res.get("message") {
-            // Ensure `create_msg_request` handles the `photo` check
-            if let Some(mut req) =
-                create_msg_request(&app, message, res["update_id"].as_i64().unwrap(), offset)
-                    .await?
-            {
-                if let Some(new_member) = &req.msg.as_ref().unwrap().new_chat_member {
-                    handle_new_member(new_member.clone(), offset, &mut req).await?;
-                    continue;
-                }
-
-                // Check if the message is a command
-                if req.get_msg_text().starts_with("/") {
-                    if req.get_msg_text().len() == 1 {
-                        handle_command(offset, None, None, &mut req).await?;
-                        continue;
-                    }
-                    let msg_text = &req.get_msg_text()[1..];
-                    let mut args = parse_command_arguments(msg_text);
-                    let command_str = args.remove(0);
-                    let command = command_str.split('@').next().unwrap().trim();
-                    debug!("Handle {} command", command);
-                    handle_command(offset, command_str_to_type(command), Some(args), &mut req)
-                        .await?;
-                }
-            }
-        }
-
-        // Update the offset after processing the message if it's not a command
-        let update_id = res["update_id"].as_i64().unwrap();
-        *offset = update_id + 1;
-    }
-    Ok(())
-}
-
-pub async fn handle_error(
-    error: Error,
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    error!("Handle error: {error}");
-    let text = req.get_translation_for("wrong").await?;
-    req.set_msg_text(text);
-    send_error_msg(offset, req.get_msg().unwrap().chat.id, req).await
-}
-
-async fn handle_new_member(
-    member: User,
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    debug!("Handle new member: {member:#?}");
-    let chat = req.get_msg().unwrap_or_default().chat;
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-    if member.is_bot && member.username == "dvizh_wroclaw_bot" {
-        handle_start_command(offset, req).await?;
-        let admins =
-            get_chat_administrators(&req.app.client, &req.app.conf.tg_token, chat.id).await?;
-        debug!("List of {} admins: {:#?}", chat.id, admins);
-        for admin in admins {
-            dvizh_repo.add_or_update_user(
-                DbUser::new(
-                    admin.username.clone(),
-                    admin.first_name,
-                    None,
-                    admin.language_code,
-                ),
-                chat.id,
-            )?;
-
-            dvizh_repo.add_admin(&admin.username, chat.id)?;
-        }
-    } else {
-        let text = req.get_translation_for("welcome").await?;
-        req.set_msg_text(format!("{} {}", text, member.first_name));
-        dvizh_repo.add_or_update_user(
-            DbUser::new(
-                member.username,
-                Some(member.first_name),
-                None,
-                member.language_code,
-            ),
-            chat.id,
-        )?;
-        send_msg(offset, req).await?;
-    }
-
-    handle_help_command(offset, req).await
-}
-
-async fn handle_command(
+pub async fn handle_command(
     offset: &mut i64,
     command_t: Option<CommandType>,
     command_args: Option<Vec<String>>,
@@ -190,17 +78,7 @@ async fn handle_command(
     }
 }
 
-async fn handle_hello_command(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    debug!("Hello command was called");
-    let text = req.get_translation_for("hello").await?;
-    req.set_msg_text(text);
-    send_msg(offset, req).await
-}
-
-async fn handle_start_command(
+pub async fn handle_start_command(
     offset: &mut i64,
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
@@ -239,12 +117,22 @@ async fn handle_start_command(
     send_keyboard_msg(&keyboard, offset, req).await
 }
 
-async fn handle_help_command(
+pub async fn handle_help_command(
     offset: &mut i64,
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     debug!("Help command was called");
     let text = req.get_translation_for("help").await?;
+    req.set_msg_text(text);
+    send_msg(offset, req).await
+}
+
+async fn handle_hello_command(
+    offset: &mut i64,
+    req: &mut MsgRequest,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    debug!("Hello command was called");
+    let text = req.get_translation_for("hello").await?;
     req.set_msg_text(text);
     send_msg(offset, req).await
 }
@@ -412,62 +300,4 @@ async fn handle_test_command(
 
     req.set_msg_text(text.join(";"));
     send_reply_msg(offset, req).await
-}
-
-async fn handle_callback_query(
-    callback_query: &serde_json::Value,
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<(), Box<dyn std::error::Error>> {
-    debug!("Handle callback query");
-
-    let callback_data = callback_query["data"].as_str().unwrap_or_default();
-    let chat_id = callback_query["message"]["chat"]["id"].as_i64().unwrap();
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-
-    if callback_data.starts_with("lang_") {
-        let new_language = match callback_data {
-            "lang_en" => "en",
-            "lang_ru" => "ru",
-            "lang_pl" => "pl",
-            _ => "en",
-        };
-
-        dvizh_repo.update_chat_language(chat_id, new_language.to_string())?;
-        req.update_group_language_code(chat_id).await?;
-        remove_keyboard(offset, req).await?;
-    } else if callback_data.starts_with("zodiac_") {
-        let zodiac_sign = match callback_data {
-            "zodiac_aries" => "Aries",
-            "zodiac_taurus" => "Taurus",
-            "zodiac_gemini" => "Gemini",
-            "zodiac_cancer" => "Cancer",
-            "zodiac_leo" => "Leo",
-            "zodiac_virgo" => "Virgo",
-            "zodiac_libra" => "Libra",
-            "zodiac_scorpio" => "Scorpio",
-            "zodiac_sagittarius" => "Sagittarius",
-            "zodiac_capricorn" => "Capricorn",
-            "zodiac_aquarius" => "Aquarius",
-            "zodiac_pisces" => "Pisces",
-            _ => "Unnown",
-        };
-
-        let text = req.get_translation_for("thinking").await?;
-        req.set_msg_text(text);
-        edit_message_and_remove_keyboard(offset, req).await?;
-
-        let mut message = format!(
-            "{} your horoscope for today: {}",
-            zodiac_sign,
-            get_horoscope(zodiac_sign).await?
-        );
-        let lang_code = dvizh_repo.get_chat_language_code(chat_id)?;
-        if lang_code != "en" {
-            message = translate_text(&req.app, &message, &lang_code).await?;
-        }
-        req.set_msg_text(message);
-        edit_message_and_remove_keyboard(offset, req).await?;
-    }
-    Ok(())
 }

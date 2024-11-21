@@ -1,9 +1,9 @@
 use crate::application::Application;
 use crate::db::repository::DvizhRepository;
 use crate::tg::events::{perform_events_reminder, perform_happy_birthday, send_daily_greeting};
+use crate::tg::message_handler::handle_message;
 use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
-use crate::tg::tg_handlers::handle_message;
 use crate::tg::tg_utils::calc_seconds_until;
 use chrono::{Datelike, Local};
 use log::{debug, error};

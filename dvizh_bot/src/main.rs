@@ -1,14 +1,16 @@
 mod args;
 mod bot_config;
 mod tg {
+    pub mod callback_queries;
     pub mod command_utils;
+    pub mod commands;
     pub mod events;
     pub mod language_utils;
+    pub mod message_handler;
     pub mod messaging;
     pub mod msg_request;
     pub mod msg_type_utils;
     pub mod tg_bot;
-    pub mod tg_handlers;
     pub mod tg_objects;
     pub mod tg_utils;
 }

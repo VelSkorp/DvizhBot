@@ -1,6 +1,6 @@
 use crate::application::Application;
+use crate::tg::message_handler::handle_error;
 use crate::tg::msg_type_utils::MsgType;
-use crate::tg::tg_handlers::handle_error;
 use crate::tg::tg_objects::Message;
 use log::error;
 use serde_json::Value;
