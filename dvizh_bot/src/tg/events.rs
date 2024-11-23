@@ -3,44 +3,44 @@ use crate::db::db_objects::{Event, User};
 use crate::db::repository::DvizhRepository;
 use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
+use anyhow::Result;
 use chrono::{Datelike, NaiveDate, Utc};
-use log::{debug, error};
+use log::debug;
 use std::collections::HashMap;
 
 pub async fn perform_happy_birthday(
     app: &Application,
     dvizh_repo: &DvizhRepository,
     birthday: &str,
-) {
-    if let Ok(users) = dvizh_repo.get_users_by_birthday(&birthday) {
-        for user in users {
-            if let Ok(chats) = dvizh_repo.get_chats_for_user(&user.username) {
-                for chat in chats {
-                    send_happy_birthday(&app, &user, chat).await;
-                }
-            } else {
-                error!("Failed to get chats for user: {user:#?}");
-            }
+) -> Result<()> {
+    let users = dvizh_repo.get_users_by_birthday(&birthday)?;
+    for user in users {
+        let chats = dvizh_repo.get_chats_for_user(&user.username)?;
+        for chat in chats {
+            send_happy_birthday(&app, &user, chat).await?;
         }
-    } else {
-        error!("Failed to retrieve users with birthday: {birthday}");
     }
+    Ok(())
 }
 
-pub async fn perform_events_reminder(app: &Application, dvizh_repo: &DvizhRepository) {
-    if let Ok(events) = dvizh_repo.get_today_events() {
-        for event in events {
-            reminde_events(&app, &event).await;
-        }
-    } else {
-        error!("Failed to retrieve today's events.");
+pub async fn perform_events_reminder(
+    app: &Application,
+    dvizh_repo: &DvizhRepository,
+) -> Result<()> {
+    let events = dvizh_repo.get_today_events()?;
+    for event in events {
+        reminde_events(&app, &event).await?;
     }
+    Ok(())
 }
 
-pub async fn reminde_events(app: &Application, event: &Event) {
-    let template = app.language_cache.lock().await
-        .get_translation_for_chat(&app.conf.db_path, event.group_id, "event_template")
-        .unwrap_or("📅 *Event Title*: {title}\n🗓 *Date*: {date}\n📍 *Location*: {location}\n📖 *Description*: {description}\n".to_string());
+pub async fn reminde_events(app: &Application, event: &Event) -> Result<serde_json::Value> {
+    let template = app
+        .language_cache
+        .write()
+        .await
+        .get_translation_for_chat(&app.dvizh_repo, event.group_id, "event_template")
+        .await?;
 
     let message = template
         .replace("{title}", &event.title)
@@ -54,25 +54,26 @@ pub async fn reminde_events(app: &Application, event: &Event) {
     params.insert("text", message);
 
     // Sending a message to Telegram
-    if let Err(e) = send_request(
+    send_request(
         &app.client,
         &app.conf.tg_token,
         msg_type_to_str(&MsgType::SendMessage),
         &params,
     )
     .await
-    {
-        error!(
-            "Failed to send event reminder to chat {}: {}",
-            event.group_id, e
-        );
-    }
 }
 
-pub async fn send_happy_birthday(app: &Application, user: &User, chat_id: i64) {
-    let template = app.language_cache.lock().await
-        .get_translation_for_chat(&app.conf.db_path, chat_id, "birthday_template")
-        .unwrap_or("Happy Birthday to {first_name} (@{username}) 🎉 You've turned {age} years old! May this year be filled with joy, success, and happy moments! 🥳".to_string());
+pub async fn send_happy_birthday(
+    app: &Application,
+    user: &User,
+    chat_id: i64,
+) -> Result<serde_json::Value> {
+    let template = app
+        .language_cache
+        .write()
+        .await
+        .get_translation_for_chat(&app.dvizh_repo, chat_id, "birthday_template")
+        .await?;
 
     let birth_date = NaiveDate::parse_from_str(&user.birthdate.clone().unwrap(), "%d.%m.%Y")
         .ok()
@@ -94,52 +95,35 @@ pub async fn send_happy_birthday(app: &Application, user: &User, chat_id: i64) {
     params.insert("text", message);
 
     // Sending a message to Telegram
-    if let Err(e) = send_request(
+    send_request(
         &app.client,
         &app.conf.tg_token,
         msg_type_to_str(&MsgType::SendMessage),
         &params,
     )
     .await
-    {
-        error!(
-            "Failed to send birthday message to user {}: {}",
-            user.username, e
-        );
-    }
 }
 
-pub async fn send_daily_greeting(
-    app: &Application,
-    key: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
-        if let Ok(chats) = dvizh_repo.get_all_chat_ids() {
-            for chat_id in chats {
-                let message = app.language_cache.lock().await.get_translation_for_chat(
-                    &app.conf.db_path,
-                    chat_id,
-                    key,
-                )?;
-                let mut params = HashMap::new();
-                params.insert("chat_id", chat_id.to_string());
-                params.insert("text", message.to_string());
-
-                if let Err(e) = send_request(
-                    &app.client,
-                    &app.conf.tg_token,
-                    msg_type_to_str(&MsgType::SendMessage),
-                    &params,
-                )
-                .await
-                {
-                    error!("Failed to send daily greeting to chat {}: {}", chat_id, e);
-                }
-                debug!("Sent daily greeting: {message} in {chat_id}");
-            }
-        } else {
-            error!("Failed to retrieve chat IDs for daily greetings.");
-        }
+pub async fn send_daily_greeting(app: &Application, key: &str) -> Result<()> {
+    let chats = app.dvizh_repo.lock().await.get_all_chat_ids()?;
+    for chat_id in chats {
+        let message = app
+            .language_cache
+            .write()
+            .await
+            .get_translation_for_chat(&app.dvizh_repo, chat_id, key)
+            .await?;
+        let mut params = HashMap::new();
+        params.insert("chat_id", chat_id.to_string());
+        params.insert("text", message.to_string());
+        send_request(
+            &app.client,
+            &app.conf.tg_token,
+            msg_type_to_str(&MsgType::SendMessage),
+            &params,
+        )
+        .await?;
+        debug!("Sent daily greeting: {message} in {chat_id}");
     }
     Ok(())
 }

@@ -1,12 +1,12 @@
-use crate::db::repository::DvizhRepository;
 use crate::db::db_objects::Event;
+use crate::db::repository::DvizhRepository;
+use anyhow::Result;
 use chrono::Local;
 use log::debug;
 use rusqlite::params;
-use std::error::Error;
 
 impl DvizhRepository {
-    pub fn add_or_update_event(&self, event: Event) -> Result<(), Box<dyn Error>> {
+    pub fn add_or_update_event(&self, event: Event) -> Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "INSERT INTO Events (group_id, title, date, location, description)
@@ -23,7 +23,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>, Box<dyn Error>> {
+    pub fn get_upcoming_events_for_chat(&self, group_id: i64) -> Result<Vec<Event>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
             "SELECT group_id, title, date, location, description
@@ -47,7 +47,7 @@ impl DvizhRepository {
         Ok(events)
     }
 
-    pub fn get_today_events(&self) -> Result<Vec<Event>, Box<dyn Error>> {
+    pub fn get_today_events(&self) -> Result<Vec<Event>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
             "SELECT group_id, title, location, date, description

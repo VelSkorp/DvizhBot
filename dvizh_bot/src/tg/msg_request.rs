@@ -1,10 +1,12 @@
 use crate::application::Application;
+use crate::db::repository::DvizhRepository;
 use crate::tg::message_handler::handle_error;
 use crate::tg::msg_type_utils::MsgType;
 use crate::tg::tg_objects::Message;
+use anyhow::Result;
 use log::error;
 use serde_json::Value;
-
+use tokio::sync::MutexGuard;
 #[derive(Debug)]
 pub struct MsgRequest {
     pub app: Application,
@@ -24,48 +26,38 @@ impl MsgRequest {
     }
 
     pub fn get_msg_text(&self) -> String {
-        self.get_msg().unwrap_or_default().text.unwrap_or_default()
+        self.get_msg().text.unwrap_or_default()
     }
 
-    pub async fn get_translation_for(
-        &mut self,
-        key: &str,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        Ok(self
-            .app
-            .language_cache
-            .lock()
-            .await
-            .get_translation_for_chat(
-                &self.app.conf.db_path,
-                self.get_msg().unwrap().chat.id,
-                key,
-            )?)
+    pub async fn get_dvizh_repo(&self) -> MutexGuard<'_, DvizhRepository> {
+        self.app.dvizh_repo.lock().await
     }
 
-    pub async fn update_group_language_code(
-        &mut self,
-        group_id: i64,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        Ok(self
-            .app
-            .language_cache
-            .lock()
-            .await
-            .update_group_language_code_cache(&self.app.conf.db_path, group_id)?)
+    pub async fn get_translation_for(&mut self, key: &str) -> Result<String> {
+        // Acquire a write lock on language_cache
+        let mut language_cache = self.app.language_cache.write().await;
+        Ok(language_cache
+            .get_translation_for_chat(&self.app.dvizh_repo, self.get_msg().chat.id, key)
+            .await?)
     }
 
-    pub fn get_db_path(&mut self) -> Result<String, Box<dyn std::error::Error>> {
-        Ok(self.app.conf.db_path.clone())
+    pub async fn update_group_language_code(&self, group_id: i64) -> Result<()> {
+        // Acquire a write lock on language_cache
+        let mut language_cache = self.app.language_cache.write().await;
+        // Call the async method and await it
+        let _lang_code = language_cache
+            .update_group_language_code_cache(&self.app.dvizh_repo, group_id)
+            .await?;
+        Ok(())
     }
 
-    pub fn get_msg(&self) -> Result<Message, &'static str> {
-        self.msg.as_ref().cloned().ok_or("Have no field in Message")
+    pub fn get_msg(&self) -> Message {
+        self.msg.as_ref().cloned().unwrap_or_default()
     }
 
-    pub fn set_msg_text(&mut self, value: String) {
+    pub fn set_msg_text(&mut self, value: &String) {
         if let Some(msg) = self.msg.as_mut() {
-            msg.text = Some(value);
+            msg.text = Some(value.to_string());
         }
     }
 }
@@ -75,7 +67,7 @@ pub async fn create_msg_request(
     message: &Value,
     update_id: i64,
     offset: &mut i64,
-) -> Result<Option<MsgRequest>, Box<dyn std::error::Error>> {
+) -> Result<Option<MsgRequest>> {
     // Check if "message" is an object and does not contain "photo"
     if !message.is_object() || message.as_object().and_then(|m| m.get("photo")).is_some() {
         return Ok(None); // Return `None` if message is invalid or contains a photo

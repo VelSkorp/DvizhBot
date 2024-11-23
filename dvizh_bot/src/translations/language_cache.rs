@@ -1,73 +1,92 @@
 use crate::db::repository::DvizhRepository;
+use anyhow::Result;
 use log::debug;
-use rusqlite::Result;
 use std::collections::HashMap;
-use std::io::Error;
+use std::sync::Arc;
+use tokio::sync::{Mutex, RwLock};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LanguageCache {
-    chat_language_cache: HashMap<i64, String>,
-    translation_cache: HashMap<String, HashMap<String, String>>,
+    chat_language_cache: RwLock<HashMap<i64, String>>,
+    translation_cache: RwLock<HashMap<String, HashMap<String, String>>>,
 }
 
 impl LanguageCache {
     pub fn new() -> Self {
         LanguageCache {
-            chat_language_cache: HashMap::new(),
-            translation_cache: HashMap::new(),
+            chat_language_cache: RwLock::new(HashMap::new()),
+            translation_cache: RwLock::new(HashMap::new()),
         }
     }
 
-    pub fn get_translation_for_chat(
+    pub async fn get_translation_for_chat(
         &mut self,
-        db_path: &str,
+        dvizh_repo: &Arc<Mutex<DvizhRepository>>,
         group_id: i64,
         key: &str,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        if !self.chat_language_cache.contains_key(&group_id) {
-            debug!("Load {group_id} group language code cache");
-            self.update_group_language_code_cache(db_path, group_id)?;
-        }
-
-        let lang_code = self
-            .chat_language_cache
-            .get(&group_id)
-            .cloned()
-            .unwrap_or_default();
-
-        if !self.translation_cache.contains_key(&lang_code) {
-            debug!("Load {lang_code} translation cahce");
-            let translations = self.load_translations_for_language(&lang_code)?;
-            self.translation_cache
-                .insert(lang_code.clone(), translations);
-        }
-
+    ) -> Result<String> {
         debug!("Get translation for {key}");
-        let translation = self
-            .translation_cache
-            .get(&lang_code)
-            .and_then(|translations| translations.get(key))
-            .cloned()
-            .unwrap_or_else(|| key.to_string());
+
+        // Acquire read lock on chat_language_cache
+        let lang_code = {
+            let cache = self.chat_language_cache.read().await;
+            cache.get(&group_id).cloned()
+        };
+
+        let lang_code = match lang_code {
+            Some(code) => code,
+            None => {
+                self.update_group_language_code_cache(dvizh_repo, group_id)
+                    .await?
+            }
+        };
+
+        // Acquire read lock on translation_cache
+        let translation = {
+            let cache = self.translation_cache.read().await;
+            if let Some(translations) = cache.get(&lang_code) {
+                translations.get(key).cloned()
+            } else {
+                None
+            }
+        };
+
+        let translation = match translation {
+            Some(t) => t,
+            None => {
+                // Load translations and update cache
+                let translations = self.load_translations_for_language(&lang_code)?;
+                let mut cache = self.translation_cache.write().await;
+                cache.insert(lang_code.clone(), translations.clone());
+                translations
+                    .get(key)
+                    .cloned()
+                    .unwrap_or_else(|| key.to_string())
+            }
+        };
 
         Ok(translation)
     }
 
-    pub fn update_group_language_code_cache(
+    pub async fn update_group_language_code_cache(
         &mut self,
-        db_path: &str,
+        dvizh_repo: &Arc<Mutex<DvizhRepository>>,
         group_id: i64,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let dvizh_repo = DvizhRepository::new(db_path)?;
-        let lang_code = dvizh_repo.get_chat_language_code(group_id)?;
-        self.chat_language_cache.insert(group_id, lang_code.clone());
-        Ok(())
+    ) -> Result<String> {
+        debug!("Load {group_id} group language code cache");
+
+        // Lock dvizh_repo and fetch lang_code
+        let dvizh_repo_guard = dvizh_repo.lock().await;
+        let code = dvizh_repo_guard.get_chat_language_code(group_id)?;
+
+        // Update chat_language_cache
+        let mut cache = self.chat_language_cache.write().await;
+        cache.insert(group_id, code.clone());
+        Ok(code)
     }
 
-    fn load_translations_for_language(
-        &self,
-        lang_code: &str,
-    ) -> Result<HashMap<String, String>, Error> {
+    fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, String>> {
+        debug!("Load {lang_code} translation cahce");
         let file_path = format!("src/translations/{lang_code}.json");
         let data = std::fs::read_to_string(&file_path)?;
         Ok(serde_json::from_str(&data)?)

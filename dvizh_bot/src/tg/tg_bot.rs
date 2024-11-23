@@ -5,12 +5,13 @@ use crate::tg::message_handler::handle_message;
 use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
 use crate::tg::tg_utils::calc_seconds_until;
+use anyhow::Result;
 use chrono::{Datelike, Local};
 use log::{debug, error};
 use std::collections::HashMap;
 use tokio::time::{interval_at, Duration, Instant};
 
-pub async fn run(app: Application, t: &MsgType) {
+pub async fn run(app: Application, t: &MsgType) -> Result<()> {
     debug!("Bot run");
     // Set the initial offset to 0
     let mut offset: i64 = 0;
@@ -39,7 +40,7 @@ pub async fn run(app: Application, t: &MsgType) {
     }
 }
 
-pub async fn check_and_perform_daily_operations(app: Application) {
+pub async fn check_and_perform_daily_operations(app: Application) -> Result<()> {
     debug!("Bot check and perform daily operations");
     // Execution time at 00:00
     let now = Local::now();
@@ -71,23 +72,19 @@ pub async fn check_and_perform_daily_operations(app: Application) {
                     let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
                     debug!("Performing daily operations at midnight.");
 
-                    perform_happy_birthday(&app, &dvizh_repo, &day).await;
-                    perform_events_reminder(&app, &dvizh_repo).await;
+                    perform_happy_birthday(&app, &dvizh_repo, &day).await?;
+                    perform_events_reminder(&app, &dvizh_repo).await?;
                 } else {
                     error!("Failed to connect to DvizhRepository.");
                 }
             }
 
             _ = morning_interval.tick() => {
-                if let Err(e) = send_daily_greeting(&app, "morning").await {
-                    error!("Error sending morning greeting: {e:?}");
-                }
+                send_daily_greeting(&app, "morning").await?
             }
 
             _ = evening_interval.tick() => {
-                if let Err(e) = send_daily_greeting(&app, "night").await {
-                    error!("Error sending evening greeting: {e:?}");
-                }
+                send_daily_greeting(&app, "night").await?
             }
         }
     }

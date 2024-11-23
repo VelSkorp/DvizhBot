@@ -1,11 +1,11 @@
-use crate::db::repository::DvizhRepository;
 use crate::db::db_objects::User;
+use crate::db::repository::DvizhRepository;
+use anyhow::Result;
 use log::debug;
 use rusqlite::{params, Transaction};
-use std::error::Error;
 
 impl DvizhRepository {
-    pub fn add_or_update_user(&self, user: User, chat_id: i64) -> Result<(), Box<dyn Error>> {
+    pub fn add_or_update_user(&self, user: User, chat_id: i64) -> Result<()> {
         let mut conn = self.pool.get()?;
         let tx = conn.transaction()?;
 
@@ -28,7 +28,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn get_users_by_birthday(&self, birthday: &str) -> Result<Vec<User>, Box<dyn Error>> {
+    pub fn get_users_by_birthday(&self, birthday: &str) -> Result<Vec<User>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
             "SELECT username,
@@ -54,7 +54,7 @@ impl DvizhRepository {
         Ok(users)
     }
 
-    pub fn get_chats_for_user(&self, user_id: &str) -> Result<Vec<i64>, Box<dyn Error>> {
+    pub fn get_chats_for_user(&self, user_id: &str) -> Result<Vec<i64>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT group_id FROM Members WHERE user_id = ?1")?;
 
@@ -68,7 +68,7 @@ impl DvizhRepository {
         Ok(chat_ids)
     }
 
-    pub fn add_admin(&self, user_id: &str, group_id: i64) -> Result<(), Box<dyn Error>> {
+    pub fn add_admin(&self, user_id: &str, group_id: i64) -> Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "INSERT INTO Admins (group_id, user_id)
@@ -82,16 +82,17 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn is_not_admin(&self, user_id: &str, group_id: i64) -> Result<bool, Box<dyn Error>> {
+    pub fn is_not_admin(&self, user_id: &str, group_id: i64) -> Result<bool> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare("SELECT 1 FROM Admins WHERE group_id = ? AND user_id = ? LIMIT 1")?;
+        let mut stmt =
+            conn.prepare("SELECT 1 FROM Admins WHERE group_id = ? AND user_id = ? LIMIT 1")?;
 
         debug!("Checking if user {user_id} is NOT an admin in group {group_id}");
 
         Ok(!stmt.exists(params![group_id, user_id])?)
     }
 
-    fn add_membership_tx(&self, tx: &Transaction, user_id: &str, group_id: i64) -> Result<(), Box<dyn Error>> {
+    fn add_membership_tx(&self, tx: &Transaction, user_id: &str, group_id: i64) -> Result<()> {
         tx.execute(
             "INSERT INTO Members (group_id, user_id)
             VALUES (?1, ?2)

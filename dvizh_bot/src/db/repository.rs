@@ -1,6 +1,7 @@
-use std::fmt::Debug;
-use r2d2::{Pool, Error};
+use anyhow::Result;
+use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
+use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
 pub struct DvizhRepository {
@@ -8,11 +9,9 @@ pub struct DvizhRepository {
 }
 
 impl DvizhRepository {
-    pub fn new(db_path: &str) -> Result<Self, Error> {
+    pub fn new(db_path: &str) -> Result<Self> {
         let manager = SqliteConnectionManager::file(db_path);
-        let pool = Pool::builder()
-            .max_size(15)
-            .build(manager)?;
+        let pool = Pool::builder().max_size(15).build(manager)?;
         Ok(DvizhRepository { pool })
     }
 }

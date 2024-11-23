@@ -1,4 +1,5 @@
 use crate::application::Application;
+use anyhow::Result;
 use rust_bert::pipelines::translation::Language;
 
 pub fn language_code_to_language(code: &str) -> Language {
@@ -10,11 +11,7 @@ pub fn language_code_to_language(code: &str) -> Language {
     }
 }
 
-pub async fn translate_text(
-    app: &Application,
-    text: &str,
-    target_lang: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn translate_text(app: &Application, text: &str, target_lang: &str) -> Result<String> {
     let lang = language_code_to_language(target_lang);
     let tanlation =
         app.translation_model

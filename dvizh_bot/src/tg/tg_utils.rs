@@ -2,6 +2,7 @@ use crate::db::db_objects::User;
 use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::msg_type_to_str;
 use crate::MsgType;
+use anyhow::Result;
 use chrono::Local;
 use headless_chrome::{Browser, LaunchOptions};
 use log::debug;
@@ -11,7 +12,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Duration;
 
-pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub async fn parse_memes() -> Result<Vec<String>> {
     // Initialize the headless browser
     let browser = Browser::new(LaunchOptions {
         headless: true,
@@ -39,16 +40,10 @@ pub async fn parse_memes() -> Result<Vec<String>, Box<dyn std::error::Error>> {
         .collect();
 
     debug!("{meme_urls:#?}");
-
-    // Check and return the results
-    if meme_urls.is_empty() {
-        Err("No memes found".into())
-    } else {
-        Ok(meme_urls)
-    }
+    Ok(meme_urls)
 }
 
-pub async fn get_horoscope(sign: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn get_horoscope(sign: &str) -> Result<String> {
     let client = reqwest::Client::new();
     let url = format!(
         "https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign={}&day=TODAY",
@@ -88,7 +83,7 @@ pub async fn get_chat_administrators(
     client: &Client,
     api_token: &str,
     chat_id: i64,
-) -> Result<Vec<User>, Box<dyn std::error::Error>> {
+) -> Result<Vec<User>> {
     let mut params = HashMap::new();
     params.insert("chat_id", chat_id.to_string());
 
@@ -100,24 +95,20 @@ pub async fn get_chat_administrators(
     )
     .await?;
 
-    if response["ok"].as_bool().unwrap_or(false) {
-        let admins = response["result"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .iter()
-            .filter_map(|admin| {
-                let user = &admin["user"];
+    let admins = response["result"]
+        .as_array()
+        .unwrap_or(&vec![])
+        .iter()
+        .filter_map(|admin| {
+            let user = &admin["user"];
 
-                Some(User {
-                    username: user["username"].as_str()?.to_string(),
-                    first_name: user["first_name"].as_str().map(|s| s.to_string()),
-                    birthdate: None,
-                    language_code: user["language_code"].as_str().map(|s| s.to_string()),
-                })
+            Some(User {
+                username: user["username"].as_str()?.to_string(),
+                first_name: user["first_name"].as_str().map(|s| s.to_string()),
+                birthdate: None,
+                language_code: user["language_code"].as_str().map(|s| s.to_string()),
             })
-            .collect();
-        Ok(admins)
-    } else {
-        Err("Failed to retrieve chat administrators".into())
-    }
+        })
+        .collect();
+    Ok(admins)
 }

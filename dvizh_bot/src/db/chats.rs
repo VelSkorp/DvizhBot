@@ -1,11 +1,11 @@
-use crate::db::repository::DvizhRepository;
 use crate::db::db_objects::Chat;
+use crate::db::repository::DvizhRepository;
+use anyhow::Result;
 use log::debug;
 use rusqlite::params;
-use std::error::Error;
 
 impl DvizhRepository {
-    pub fn add_chat(&self, chat: Chat) -> Result<(), Box<dyn Error>> {
+    pub fn add_chat(&self, chat: Chat) -> Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "INSERT INTO Chat (id, title, language_code)
@@ -21,7 +21,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn update_chat_language(&self, chat_id: i64, new_language: String) -> Result<(), Box<dyn Error>> {
+    pub fn update_chat_language(&self, chat_id: i64, new_language: String) -> Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "UPDATE Chat SET language_code = ?1 WHERE id = ?2",
@@ -30,7 +30,7 @@ impl DvizhRepository {
         Ok(())
     }
 
-    pub fn get_all_chat_ids(&self) -> Result<Vec<i64>, Box<dyn Error>> {
+    pub fn get_all_chat_ids(&self) -> Result<Vec<i64>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT id FROM Chat")?;
 
@@ -44,7 +44,7 @@ impl DvizhRepository {
         Ok(chat_ids)
     }
 
-    pub fn get_chat_language_code(&self, group_id: i64) -> Result<String, Box<dyn Error>> {
+    pub fn get_chat_language_code(&self, group_id: i64) -> Result<String> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT language_code FROM Chat WHERE id = ?1")?;
         let code = stmt

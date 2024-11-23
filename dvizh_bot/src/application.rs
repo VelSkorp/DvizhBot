@@ -1,6 +1,8 @@
 use crate::args;
 use crate::bot_config;
+use crate::db::repository::DvizhRepository;
 use crate::LanguageCache;
+use anyhow::Result;
 use args::Arguments;
 use args::Verbose;
 use bot_config::BotConfig;
@@ -10,10 +12,9 @@ use env_logger;
 use log::debug;
 use reqwest::Client;
 use rust_bert::pipelines::translation::{Language, TranslationModel, TranslationModelBuilder};
-use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
@@ -21,20 +22,21 @@ pub struct Application {
     pub client: Client,
     pub conf: BotConfig,
     pub args: Arguments,
-    pub log_level: &'static str,
-    pub language_cache: Arc<Mutex<LanguageCache>>,
-    pub meme_cache: Arc<Mutex<Vec<String>>>,
+    pub dvizh_repo: Arc<Mutex<DvizhRepository>>,
+    pub language_cache: Arc<RwLock<LanguageCache>>,
+    pub meme_cache: Arc<RwLock<Vec<String>>>,
     #[derivative(Debug = "ignore")]
     pub translation_model: Arc<Mutex<TranslationModel>>,
 }
 
 impl Application {
-    pub fn init() -> Result<Self, Box<dyn Error>> {
+    pub fn init() -> Result<Self> {
         let cli = Client::new();
-        let language_cache = Arc::new(Mutex::new(LanguageCache::new()));
-        let meme_cache = Arc::new(Mutex::new(Vec::new()));
+        let language_cache = Arc::new(RwLock::new(LanguageCache::new()));
+        let meme_cache = Arc::new(RwLock::new(Vec::new()));
         let conf = bot_config::load_config();
         let args = args::Arguments::parse();
+        let dvizh_repo = Arc::new(Mutex::new(DvizhRepository::new(&conf.db_path)?));
 
         let arg_line = std::env::args()
             .skip(1)
@@ -66,7 +68,7 @@ impl Application {
             client: cli,
             conf,
             args,
-            log_level,
+            dvizh_repo,
             language_cache,
             meme_cache,
             translation_model,

@@ -1,6 +1,5 @@
 use crate::application::Application;
 use crate::db::db_objects::User as DbUser;
-use crate::db::repository::DvizhRepository;
 use crate::tg::callback_queries::handle_callback_query;
 use crate::tg::command_utils::{command_str_to_type, parse_command_arguments};
 use crate::tg::commands::{handle_command, handle_help_command, handle_start_command};
@@ -8,6 +7,7 @@ use crate::tg::messaging::{send_error_msg, send_msg};
 use crate::tg::msg_request::{create_msg_request, MsgRequest};
 use crate::tg::tg_objects::User;
 use crate::tg::tg_utils::get_chat_administrators;
+use anyhow::Result;
 use log::{debug, error};
 use serde_json::{Error, Value};
 
@@ -15,7 +15,7 @@ pub async fn handle_message(
     app: Application,
     response_results: &Vec<Value>,
     offset: &mut i64,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     for res in response_results {
         debug!("{res:?}");
 
@@ -68,28 +68,27 @@ pub async fn handle_error(
     error: Error,
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     error!("Handle error: {error}");
     let text = req.get_translation_for("wrong").await?;
-    req.set_msg_text(text);
-    send_error_msg(offset, req.get_msg().unwrap().chat.id, req).await
+    req.set_msg_text(&text);
+    send_error_msg(offset, req.get_msg().chat.id, req).await
 }
 
 async fn handle_new_member(
     member: User,
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("Handle new member: {member:#?}");
-    let chat = req.get_msg().unwrap_or_default().chat;
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
+    let chat = req.get_msg().chat;
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
         handle_start_command(offset, req).await?;
         let admins =
             get_chat_administrators(&req.app.client, &req.app.conf.tg_token, chat.id).await?;
         debug!("List of {} admins: {:#?}", chat.id, admins);
         for admin in admins {
-            dvizh_repo.add_or_update_user(
+            req.get_dvizh_repo().await.add_or_update_user(
                 DbUser::new(
                     admin.username.clone(),
                     admin.first_name,
@@ -99,12 +98,14 @@ async fn handle_new_member(
                 chat.id,
             )?;
 
-            dvizh_repo.add_admin(&admin.username, chat.id)?;
+            req.get_dvizh_repo()
+                .await
+                .add_admin(&admin.username, chat.id)?;
         }
     } else {
-        let text = req.get_translation_for("welcome").await?;
-        req.set_msg_text(format!("{} {}", text, member.first_name));
-        dvizh_repo.add_or_update_user(
+        let text = &req.get_translation_for("welcome").await?;
+        req.set_msg_text(&format!("{} {}", text, member.first_name));
+        req.get_dvizh_repo().await.add_or_update_user(
             DbUser::new(
                 member.username,
                 Some(member.first_name),

@@ -15,8 +15,11 @@ mod tg {
     pub mod tg_utils;
 }
 mod db {
+    pub mod chats;
     pub mod db_objects;
+    pub mod events;
     pub mod repository;
+    pub mod users;
 }
 mod application;
 mod errors;
@@ -25,6 +28,7 @@ mod translations {
 }
 mod validations;
 
+use anyhow::Result;
 pub use application::Application;
 pub use bot_config::BotConfig;
 pub use std::error::Error;
@@ -34,11 +38,11 @@ pub use tg::tg_bot::run;
 pub use translations::language_cache::LanguageCache;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
     let app = Application::init()?;
 
     tokio::spawn(check_and_perform_daily_operations(app.clone()));
 
-    run(app, &MsgType::GetUpdates).await;
+    run(app, &MsgType::GetUpdates).await?;
     Ok(())
 }

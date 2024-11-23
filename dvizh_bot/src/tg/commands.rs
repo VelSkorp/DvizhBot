@@ -1,5 +1,4 @@
 use crate::db::db_objects::{Chat, Event, User as DbUser};
-use crate::db::repository::DvizhRepository;
 use crate::tg::command_utils::CommandType;
 use crate::tg::messaging::{
     send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
@@ -7,6 +6,7 @@ use crate::tg::messaging::{
 use crate::tg::msg_request::MsgRequest;
 use crate::tg::tg_utils::parse_memes;
 use crate::validations::{validate_argument_count, validate_date_format};
+use anyhow::Result;
 use log::debug;
 use rand::Rng;
 use serde_json::json;
@@ -16,7 +16,7 @@ pub async fn handle_command(
     command_t: Option<CommandType>,
     command_args: Option<Vec<String>>,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     match command_t {
         Some(CommandType::Start) => handle_start_command(offset, req).await,
         Some(CommandType::Hello) => handle_hello_command(offset, req).await,
@@ -26,13 +26,13 @@ pub async fn handle_command(
                 Ok(_) => handle_set_birthdate_command(&args[0], offset, req).await,
                 Err(error_key) => {
                     let text = req.get_translation_for(&error_key).await?;
-                    req.set_msg_text(text);
+                    req.set_msg_text(&text);
                     send_msg(offset, req).await
                 }
             },
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(text);
+                req.set_msg_text(&text);
                 send_msg(offset, req).await
             }
         },
@@ -44,13 +44,13 @@ pub async fn handle_command(
                 }
                 Err(error_key) => {
                     let text = req.get_translation_for(&error_key).await?;
-                    req.set_msg_text(text);
+                    req.set_msg_text(&text);
                     send_msg(offset, req).await
                 }
             },
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(text);
+                req.set_msg_text(&text);
                 send_msg(offset, req).await
             }
         },
@@ -58,7 +58,7 @@ pub async fn handle_command(
             Ok(args) => handle_add_event_command(args, offset, req).await,
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(text);
+                req.set_msg_text(&text);
                 send_msg(offset, req).await
             }
         },
@@ -70,7 +70,7 @@ pub async fn handle_command(
             Ok(args) => handle_test_command(args, offset, req).await,
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(text);
+                req.set_msg_text(&text);
                 send_msg(offset, req).await
             }
         },
@@ -81,28 +81,31 @@ pub async fn handle_command(
 pub async fn handle_start_command(
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("Start command was called");
-    let chat = req.get_msg().unwrap_or_default().chat;
-    let user = req.get_msg().unwrap_or_default().from;
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-    let title = chat.title.unwrap_or(chat.first_name.unwrap_or_default());
-    dvizh_repo.add_chat(Chat::new(chat.id, title, "en".to_string()))?;
-    if chat.chat_type == "private" {
-        dvizh_repo.add_or_update_user(
-            DbUser::new(
-                user.username.clone(),
-                Some(user.first_name),
-                None,
-                user.language_code,
-            ),
-            chat.id,
-        )?;
-        dvizh_repo.add_admin(&user.username, chat.id)?;
+    let chat = req.get_msg().chat;
+    let user = req.get_msg().from;
+
+    {
+        let dvizh_repo = req.get_dvizh_repo().await;
+        let title = chat.title.unwrap_or(chat.first_name.unwrap_or_default());
+        dvizh_repo.add_chat(Chat::new(chat.id, title, "en".to_string()))?;
+        if chat.chat_type == "private" {
+            dvizh_repo.add_or_update_user(
+                DbUser::new(
+                    user.username.clone(),
+                    Some(user.first_name),
+                    None,
+                    user.language_code,
+                ),
+                chat.id,
+            )?;
+            dvizh_repo.add_admin(&user.username, chat.id)?;
+        }
     }
 
     let text = req.get_translation_for("hello").await?;
-    req.set_msg_text(text);
+    req.set_msg_text(&text);
     let keyboard = json!({
         "inline_keyboard": [
             [
@@ -120,20 +123,17 @@ pub async fn handle_start_command(
 pub async fn handle_help_command(
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("Help command was called");
     let text = req.get_translation_for("help").await?;
-    req.set_msg_text(text);
+    req.set_msg_text(&text);
     send_msg(offset, req).await
 }
 
-async fn handle_hello_command(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Hello command was called");
     let text = req.get_translation_for("hello").await?;
-    req.set_msg_text(text);
+    req.set_msg_text(&text);
     send_msg(offset, req).await
 }
 
@@ -141,9 +141,9 @@ async fn handle_set_birthdate_command(
     date: &str,
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("SetBirthdate command was called with {date}");
-    let user = req.get_msg().unwrap_or_default().from;
+    let user = req.get_msg().from;
     handle_set_birthdate_for_command(
         &user.username,
         Some(user.first_name),
@@ -162,17 +162,16 @@ async fn handle_set_birthdate_for_command(
     date: &str,
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("SetBirthdateFor command was called with {date}");
     let usr = username.replace("@", "");
-    let chat_id = req.get_msg().unwrap_or_default().chat.id;
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-    dvizh_repo.add_or_update_user(
+    let chat_id = req.get_msg().chat.id;
+    req.get_dvizh_repo().await.add_or_update_user(
         DbUser::new(usr, first_name, Some(date.to_string()), language_code),
         chat_id,
     )?;
     let text = req.get_translation_for("remeber_birthday").await?;
-    req.set_msg_text(format!("{} {}", text, date));
+    req.set_msg_text(&format!("{} {}", text, date));
     send_msg(offset, req).await
 }
 
@@ -180,19 +179,22 @@ async fn handle_add_event_command(
     args: &Vec<String>,
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("AddEvent command was called");
-    let chat = req.get_msg().unwrap_or_default().chat;
-    let user = req.get_msg().unwrap_or_default().from;
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
+    let chat = req.get_msg().chat;
+    let user = req.get_msg().from;
 
-    if dvizh_repo.is_not_admin(&user.username, chat.id)? {
+    if req
+        .get_dvizh_repo()
+        .await
+        .is_not_admin(&user.username, chat.id)?
+    {
         let text = req.get_translation_for("error_not_admin").await?;
-        req.set_msg_text(text);
+        req.set_msg_text(&text);
         return send_msg(offset, req).await;
     }
 
-    dvizh_repo.add_or_update_event(Event::new(
+    req.get_dvizh_repo().await.add_or_update_event(Event::new(
         chat.id,
         args[0].to_string(),
         args[1].to_string(),
@@ -200,27 +202,29 @@ async fn handle_add_event_command(
         args[3].to_string(),
     ))?;
     let text = req.get_translation_for("remeber_event").await?;
-    req.set_msg_text(format!("{} {}", text, args[0]));
+    req.set_msg_text(&format!("{} {}", text, args[0]));
     send_msg(offset, req).await
 }
 
 async fn handle_list_events_command(
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("ListEvents command was called");
-    let chat = req.get_msg().unwrap_or_default().chat;
-    let dvizh_repo = DvizhRepository::new(&req.get_db_path()?)?;
-    let events = dvizh_repo.get_upcoming_events_for_chat(chat.id)?;
+    let chat = req.get_msg().chat;
+    let events = &req
+        .get_dvizh_repo()
+        .await
+        .get_upcoming_events_for_chat(chat.id)?;
 
     if events.is_empty() {
         let text = req.get_translation_for("no_upcoming_event").await?;
-        req.set_msg_text(text);
+        req.set_msg_text(&text);
         return send_msg(offset, req).await;
     }
 
     let text = req.get_translation_for("upcoming_event").await?;
-    req.set_msg_text(text);
+    req.set_msg_text(&text);
     send_msg(offset, req).await?;
 
     // Retrieve the entire event template from translation
@@ -234,39 +238,33 @@ async fn handle_list_events_command(
             .replace("{location}", &event.location)
             .replace("{description}", &event.description);
 
-        req.set_msg_text(message);
+        req.set_msg_text(&message);
         send_msg(offset, req).await?;
     }
 
     Ok(serde_json::Value::Null)
 }
 
-async fn handle_meme_command(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+async fn handle_meme_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Meme command was called");
-    let mut mem_cnt = req.app.meme_cache.lock().await.len();
+    let mut mem_cnt = req.app.meme_cache.read().await.len();
     if mem_cnt <= 2 {
         debug!("get and load meme chache");
         let mut memes = parse_memes().await?;
-        req.app.meme_cache.lock().await.append(&mut memes);
-        mem_cnt = req.app.meme_cache.lock().await.len();
+        req.app.meme_cache.write().await.append(&mut memes);
+        mem_cnt = req.app.meme_cache.read().await.len();
     }
     debug!("Mem count: {mem_cnt}");
     let random_index = rand::thread_rng().gen_range(0..mem_cnt);
-    let mem_url = req.app.meme_cache.lock().await.remove(random_index);
+    let mem_url = req.app.meme_cache.write().await.remove(random_index);
     send_photo_msg(&mem_url, "", offset, req).await
 }
 
-async fn handle_astro_command(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+async fn handle_astro_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Astro command was called");
 
     let text = req.get_translation_for("astro").await?;
-    req.set_msg_text(text);
+    req.set_msg_text(&text);
     let keyboard = json!({
         "inline_keyboard": [
             [{ "text": "Aries", "callback_data": "zodiac_aries" }, { "text": "Taurus", "callback_data": "zodiac_taurus" }],
@@ -281,13 +279,10 @@ async fn handle_astro_command(
     send_keyboard_reply_msg(&keyboard, offset, req).await
 }
 
-async fn handle_luck_command(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+async fn handle_luck_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Luck command was called");
     let text = req.get_translation_for("luck").await?;
-    req.set_msg_text(text);
+    req.set_msg_text(&text);
     send_reply_msg(offset, req).await
 }
 
@@ -295,9 +290,9 @@ async fn handle_test_command(
     text: &Vec<String>,
     offset: &mut i64,
     req: &mut MsgRequest,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value> {
     debug!("Test command was called");
 
-    req.set_msg_text(text.join(";"));
+    req.set_msg_text(&text.join(";"));
     send_reply_msg(offset, req).await
 }
