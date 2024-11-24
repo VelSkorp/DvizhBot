@@ -11,7 +11,14 @@ use derivative::Derivative;
 use env_logger;
 use log::debug;
 use reqwest::Client;
-use rust_bert::pipelines::translation::{Language, TranslationModel, TranslationModelBuilder};
+use rust_bert::marian::{
+    MarianConfigResources, MarianModelResources, MarianSourceLanguages, MarianSpmResources,
+    MarianTargetLanguages, MarianVocabResources,
+};
+use rust_bert::pipelines::common::{ModelResource, ModelType};
+use rust_bert::pipelines::translation::{TranslationConfig, TranslationModel};
+use rust_bert::resources::RemoteResource;
+use tch::Device;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
@@ -58,10 +65,7 @@ impl Application {
         debug!("Args: {}", arg_line);
 
         let translation_model = Arc::new(Mutex::new(
-            TranslationModelBuilder::new()
-                .with_source_languages(vec![Language::English])
-                .with_target_languages(vec![Language::Russian])
-                .create_model()?,
+            create_translation_model()?
         ));
 
         Ok(Application {
@@ -74,4 +78,29 @@ impl Application {
             translation_model,
         })
     }
+}
+
+fn create_translation_model() -> Result<TranslationModel> {
+    let model_resource = ModelResource::Torch(Box::new(RemoteResource::from_pretrained(
+        MarianModelResources::ENGLISH2RUSSIAN,
+    )));
+    let config_resource = RemoteResource::from_pretrained(MarianConfigResources::ENGLISH2RUSSIAN);
+    let vocab_resource = RemoteResource::from_pretrained(MarianVocabResources::ENGLISH2RUSSIAN);
+    let spm_resource = RemoteResource::from_pretrained(MarianSpmResources::ENGLISH2RUSSIAN);
+
+    let source_languages = MarianSourceLanguages::ENGLISH2RUSSIAN;
+    let target_languages = MarianTargetLanguages::ENGLISH2RUSSIAN;
+
+    let translation_config = TranslationConfig::new(
+        ModelType::Marian,
+        model_resource,
+        config_resource,
+        vocab_resource,
+        Some(spm_resource),
+        source_languages,
+        target_languages,
+        Device::cuda_if_available(),
+    );
+
+    Ok(TranslationModel::new(translation_config)?)
 }

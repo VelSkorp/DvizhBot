@@ -43,6 +43,6 @@ async fn main() -> Result<()> {
 
     tokio::spawn(check_and_perform_daily_operations(app.clone()));
 
-    run(app, &MsgType::GetUpdates).await?;
+    run(app, MsgType::GetUpdates).await?;
     Ok(())
 }

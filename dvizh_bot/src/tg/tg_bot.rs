@@ -1,5 +1,4 @@
 use crate::application::Application;
-use crate::db::repository::DvizhRepository;
 use crate::tg::events::{perform_events_reminder, perform_happy_birthday, send_daily_greeting};
 use crate::tg::message_handler::handle_message;
 use crate::tg::messaging::send_request;
@@ -11,7 +10,7 @@ use log::{debug, error};
 use std::collections::HashMap;
 use tokio::time::{interval_at, Duration, Instant};
 
-pub async fn run(app: Application, t: &MsgType) -> Result<()> {
+pub async fn run(app: Application, t: MsgType) -> Result<()> {
     debug!("Bot run");
     // Set the initial offset to 0
     let mut offset: i64 = 0;
@@ -23,7 +22,7 @@ pub async fn run(app: Application, t: &MsgType) -> Result<()> {
 
         // Send the request and get the response
         let response =
-            send_request(&app.client, &app.conf.tg_token, msg_type_to_str(t), &params).await;
+            send_request(&app.client, &app.conf.tg_token, msg_type_to_str(&t), &params).await;
         debug!("offset value - {offset}");
         // Check if there are any updates
         if let Ok(response) = response {
@@ -67,16 +66,12 @@ pub async fn check_and_perform_daily_operations(app: Application) -> Result<()> 
     loop {
         tokio::select! {
             _ = midnight_interval.tick() => {
-                if let Ok(dvizh_repo) = DvizhRepository::new(&app.conf.db_path) {
-                    let current_day = Local::now().date_naive();
-                    let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
-                    debug!("Performing daily operations at midnight.");
+                debug!("Performing daily operations at midnight.");
+                let current_day = Local::now().date_naive();
+                let day = format!("{:02}.{:02}", current_day.day(), current_day.month());
 
-                    perform_happy_birthday(&app, &dvizh_repo, &day).await?;
-                    perform_events_reminder(&app, &dvizh_repo).await?;
-                } else {
-                    error!("Failed to connect to DvizhRepository.");
-                }
+                perform_happy_birthday(&app, &day).await?;
+                perform_events_reminder(&app).await?;
             }
 
             _ = morning_interval.tick() => {

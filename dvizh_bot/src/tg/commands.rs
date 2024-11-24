@@ -21,9 +21,9 @@ pub async fn handle_command(
         Some(CommandType::Start) => handle_start_command(offset, req).await,
         Some(CommandType::Hello) => handle_hello_command(offset, req).await,
         Some(CommandType::Help) => handle_help_command(offset, req).await,
-        Some(CommandType::SetBirthdate) => match validate_argument_count(&command_args, 1) {
-            Ok(args) => match validate_date_format(&args[0]) {
-                Ok(_) => handle_set_birthdate_command(&args[0], offset, req).await,
+        Some(CommandType::SetBirthdate) => match validate_argument_count(command_args, 1) {
+            Ok(mut args) => match validate_date_format(&args[0]) {
+                Ok(()) => handle_set_birthdate_command(args.remove(0), offset, req).await,
                 Err(error_key) => {
                     let text = req.get_translation_for(&error_key).await?;
                     req.set_msg_text(&text);
@@ -36,10 +36,10 @@ pub async fn handle_command(
                 send_msg(offset, req).await
             }
         },
-        Some(CommandType::SetBirthdateFor) => match validate_argument_count(&command_args, 2) {
-            Ok(args) => match validate_date_format(&args[1]) {
-                Ok(_) => {
-                    handle_set_birthdate_for_command(&args[0], None, None, &args[1], offset, req)
+        Some(CommandType::SetBirthdateFor) => match validate_argument_count(command_args, 2) {
+            Ok(mut args) => match validate_date_format(&args[1]) {
+                Ok(()) => {
+                    handle_set_birthdate_for_command(&args.remove(0), None, None, args.remove(1), offset, req)
                         .await
                 }
                 Err(error_key) => {
@@ -54,7 +54,7 @@ pub async fn handle_command(
                 send_msg(offset, req).await
             }
         },
-        Some(CommandType::AddEvent) => match validate_argument_count(&command_args, 4) {
+        Some(CommandType::AddEvent) => match validate_argument_count(command_args, 4) {
             Ok(args) => handle_add_event_command(args, offset, req).await,
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
@@ -66,7 +66,7 @@ pub async fn handle_command(
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         Some(CommandType::Luck) => handle_luck_command(offset, req).await,
-        Some(CommandType::Test) => match validate_argument_count(&command_args, 1) {
+        Some(CommandType::Test) => match validate_argument_count(command_args, 1) {
             Ok(args) => handle_test_command(args, offset, req).await,
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
@@ -138,7 +138,7 @@ async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
 }
 
 async fn handle_set_birthdate_command(
-    date: &str,
+    date: String,
     offset: &mut i64,
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
@@ -159,7 +159,7 @@ async fn handle_set_birthdate_for_command(
     username: &str,
     first_name: Option<String>,
     language_code: Option<String>,
-    date: &str,
+    date: String,
     offset: &mut i64,
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
@@ -176,7 +176,7 @@ async fn handle_set_birthdate_for_command(
 }
 
 async fn handle_add_event_command(
-    args: &Vec<String>,
+    args: Vec<String>,
     offset: &mut i64,
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
@@ -287,7 +287,7 @@ async fn handle_luck_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
 }
 
 async fn handle_test_command(
-    text: &Vec<String>,
+    text: Vec<String>,
     offset: &mut i64,
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {

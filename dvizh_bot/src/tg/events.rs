@@ -1,6 +1,5 @@
 use crate::application::Application;
 use crate::db::db_objects::{Event, User};
-use crate::db::repository::DvizhRepository;
 use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
 use anyhow::Result;
@@ -10,12 +9,11 @@ use std::collections::HashMap;
 
 pub async fn perform_happy_birthday(
     app: &Application,
-    dvizh_repo: &DvizhRepository,
     birthday: &str,
 ) -> Result<()> {
-    let users = dvizh_repo.get_users_by_birthday(&birthday)?;
+    let users = app.dvizh_repo.lock().await.get_users_by_birthday(&birthday)?;
     for user in users {
-        let chats = dvizh_repo.get_chats_for_user(&user.username)?;
+        let chats = app.dvizh_repo.lock().await.get_chats_for_user(&user.username)?;
         for chat in chats {
             send_happy_birthday(&app, &user, chat).await?;
         }
@@ -25,9 +23,8 @@ pub async fn perform_happy_birthday(
 
 pub async fn perform_events_reminder(
     app: &Application,
-    dvizh_repo: &DvizhRepository,
 ) -> Result<()> {
-    let events = dvizh_repo.get_today_events()?;
+    let events = app.dvizh_repo.lock().await.get_today_events()?;
     for event in events {
         reminde_events(&app, &event).await?;
     }
