@@ -91,7 +91,7 @@ pub async fn get_chat_administrators(
         client,
         api_token,
         msg_type_to_str(&MsgType::GetChatAdministrators),
-        &params,
+        params,
     )
     .await?;
 

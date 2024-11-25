@@ -3,9 +3,7 @@ use crate::bot_config;
 use crate::db::repository::DvizhRepository;
 use crate::LanguageCache;
 use anyhow::Result;
-use args::Arguments;
 use args::Verbose;
-use bot_config::BotConfig;
 use clap::Parser;
 use derivative::Derivative;
 use env_logger;
@@ -27,8 +25,7 @@ use tokio::sync::{Mutex, RwLock};
 #[derivative(Debug)]
 pub struct Application {
     pub client: Client,
-    pub conf: BotConfig,
-    pub args: Arguments,
+    pub tg_token: String,
     pub dvizh_repo: Arc<Mutex<DvizhRepository>>,
     pub language_cache: Arc<RwLock<LanguageCache>>,
     pub meme_cache: Arc<RwLock<Vec<String>>>,
@@ -38,7 +35,7 @@ pub struct Application {
 
 impl Application {
     pub fn init() -> Result<Self> {
-        let cli = Client::new();
+        let client = Client::new();
         let language_cache = Arc::new(RwLock::new(LanguageCache::new()));
         let meme_cache = Arc::new(RwLock::new(Vec::new()));
         let conf = bot_config::load_config();
@@ -69,9 +66,8 @@ impl Application {
         ));
 
         Ok(Application {
-            client: cli,
-            conf,
-            args,
+            client,
+            tg_token: conf.tg_token,
             dvizh_repo,
             language_cache,
             meme_cache,

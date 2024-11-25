@@ -12,7 +12,7 @@ use log::{debug, error};
 use serde_json::{Error, Value};
 
 pub async fn handle_message(
-    app: Application,
+    app: &Application,
     response_results: &Vec<Value>,
     offset: &mut i64,
 ) -> Result<()> {
@@ -40,13 +40,15 @@ pub async fn handle_message(
                     continue;
                 }
 
+                let req_msg_text = req.get_msg_text();
+
                 // Check if the message is a command
-                if req.get_msg_text().starts_with("/") {
-                    if req.get_msg_text().len() == 1 {
+                if req_msg_text.starts_with("/") {
+                    if req_msg_text.len() == 1 {
                         handle_command(offset, None, None, &mut req).await?;
                         continue;
                     }
-                    let msg_text = &req.get_msg_text()[1..];
+                    let msg_text = &req_msg_text[1..];
                     let mut args = parse_command_arguments(msg_text);
                     let command_str = args.remove(0);
                     let command = command_str.split('@').next().unwrap().trim();
@@ -81,12 +83,12 @@ async fn handle_new_member(
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
     debug!("Handle new member: {member:#?}");
-    let chat = req.get_msg().chat;
+    let chat_id = req.get_msg().chat.id;
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
         handle_start_command(offset, req).await?;
         let admins =
-            get_chat_administrators(&req.app.client, &req.app.conf.tg_token, chat.id).await?;
-        debug!("List of {} admins: {:#?}", chat.id, admins);
+            get_chat_administrators(&req.app.client, &req.app.tg_token, chat_id).await?;
+        debug!("List of {} admins: {:#?}", chat_id, admins);
         for admin in admins {
             req.get_dvizh_repo().await.add_or_update_user(
                 DbUser::new(
@@ -95,12 +97,12 @@ async fn handle_new_member(
                     None,
                     admin.language_code,
                 ),
-                chat.id,
+                chat_id,
             )?;
 
             req.get_dvizh_repo()
                 .await
-                .add_admin(&admin.username, chat.id)?;
+                .add_admin(&admin.username, chat_id)?;
         }
     } else {
         let text = &req.get_translation_for("welcome").await?;
@@ -112,7 +114,7 @@ async fn handle_new_member(
                 None,
                 member.language_code,
             ),
-            chat.id,
+            chat_id,
         )?;
         send_msg(offset, req).await?;
     }

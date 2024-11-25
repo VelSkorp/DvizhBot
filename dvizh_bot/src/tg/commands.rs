@@ -83,8 +83,8 @@ pub async fn handle_start_command(
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
     debug!("Start command was called");
-    let chat = req.get_msg().chat;
-    let user = req.get_msg().from;
+    let chat = req.get_msg().chat.clone();
+    let user = req.get_msg().from.clone();
 
     {
         let dvizh_repo = req.get_dvizh_repo().await;
@@ -143,7 +143,7 @@ async fn handle_set_birthdate_command(
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
     debug!("SetBirthdate command was called with {date}");
-    let user = req.get_msg().from;
+    let user = req.get_msg().from.clone();
     handle_set_birthdate_for_command(
         &user.username,
         Some(user.first_name),
@@ -181,13 +181,13 @@ async fn handle_add_event_command(
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
     debug!("AddEvent command was called");
-    let chat = req.get_msg().chat;
-    let user = req.get_msg().from;
+    let chat_id = req.get_msg().chat.id;
+    let user = req.get_msg().from.username.clone();
 
     if req
         .get_dvizh_repo()
         .await
-        .is_not_admin(&user.username, chat.id)?
+        .is_not_admin(&user, chat_id)?
     {
         let text = req.get_translation_for("error_not_admin").await?;
         req.set_msg_text(&text);
@@ -195,7 +195,7 @@ async fn handle_add_event_command(
     }
 
     req.get_dvizh_repo().await.add_or_update_event(Event::new(
-        chat.id,
+        chat_id,
         args[0].to_string(),
         args[1].to_string(),
         args[2].to_string(),
@@ -211,11 +211,11 @@ async fn handle_list_events_command(
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
     debug!("ListEvents command was called");
-    let chat = req.get_msg().chat;
+    let chat_id = req.get_msg().chat.id;
     let events = &req
         .get_dvizh_repo()
         .await
-        .get_upcoming_events_for_chat(chat.id)?;
+        .get_upcoming_events_for_chat(chat_id)?;
 
     if events.is_empty() {
         let text = req.get_translation_for("no_upcoming_event").await?;

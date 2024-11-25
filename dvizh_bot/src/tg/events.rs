@@ -11,7 +11,7 @@ pub async fn perform_happy_birthday(
     app: &Application,
     birthday: &str,
 ) -> Result<()> {
-    let users = app.dvizh_repo.lock().await.get_users_by_birthday(&birthday)?;
+    let users = app.dvizh_repo.lock().await.get_users_by_birthday(birthday)?;
     for user in users {
         let chats = app.dvizh_repo.lock().await.get_chats_for_user(&user.username)?;
         for chat in chats {
@@ -26,12 +26,12 @@ pub async fn perform_events_reminder(
 ) -> Result<()> {
     let events = app.dvizh_repo.lock().await.get_today_events()?;
     for event in events {
-        reminde_events(&app, &event).await?;
+        reminde_events(&app, event).await?;
     }
     Ok(())
 }
 
-pub async fn reminde_events(app: &Application, event: &Event) -> Result<serde_json::Value> {
+pub async fn reminde_events(app: &Application, event: Event) -> Result<serde_json::Value> {
     let template = app
         .language_cache
         .write()
@@ -53,9 +53,9 @@ pub async fn reminde_events(app: &Application, event: &Event) -> Result<serde_js
     // Sending a message to Telegram
     send_request(
         &app.client,
-        &app.conf.tg_token,
+        &app.tg_token,
         msg_type_to_str(&MsgType::SendMessage),
-        &params,
+        params,
     )
     .await
 }
@@ -72,31 +72,29 @@ pub async fn send_happy_birthday(
         .get_translation_for_chat(&app.dvizh_repo, chat_id, "birthday_template")
         .await?;
 
-    let birth_date = NaiveDate::parse_from_str(&user.birthdate.clone().unwrap(), "%d.%m.%Y")
-        .ok()
-        .unwrap_or_default();
+    let birth_date = NaiveDate::parse_from_str(user.birthdate.as_ref().unwrap(), "%d.%m.%Y")?;
     let today = Utc::now().date_naive();
     let age = today.year() - birth_date.year();
 
     let message = template
         .replace(
             "{first_name}",
-            &user.first_name.clone().unwrap_or("unknown :(".to_string()),
+            user.first_name.as_ref().unwrap_or(&"unknown 🙁".to_string()),
         )
         .replace("{username}", &user.username)
         .replace("{age}", &age.to_string());
 
     // Formatting the message for the user
-    let mut params: HashMap<&str, String> = HashMap::new();
+    let mut params = HashMap::new();
     params.insert("chat_id", chat_id.to_string());
     params.insert("text", message);
 
     // Sending a message to Telegram
     send_request(
         &app.client,
-        &app.conf.tg_token,
+        &app.tg_token,
         msg_type_to_str(&MsgType::SendMessage),
-        &params,
+        params,
     )
     .await
 }
@@ -115,9 +113,9 @@ pub async fn send_daily_greeting(app: &Application, key: &str) -> Result<()> {
         params.insert("text", message.to_string());
         send_request(
             &app.client,
-            &app.conf.tg_token,
+            &app.tg_token,
             msg_type_to_str(&MsgType::SendMessage),
-            &params,
+            params,
         )
         .await?;
         debug!("Sent daily greeting: {message} in {chat_id}");

@@ -21,7 +21,7 @@ pub async fn send_msg(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_js
     let msg = req.get_msg();
     let mut params = HashMap::new();
     params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("text", req.get_msg_text());
 
     send_msg_internal(offset, req, params).await
 }
@@ -30,7 +30,7 @@ pub async fn send_reply_msg(offset: &mut i64, req: &mut MsgRequest) -> Result<se
     let msg = req.get_msg();
     let mut params = HashMap::new();
     params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("text", req.get_msg_text());
     params.insert("reply_to_message_id", msg.message_id.to_string());
 
     send_msg_internal(offset, req, params).await
@@ -44,7 +44,7 @@ pub async fn send_keyboard_msg(
     let msg = req.get_msg();
     let mut params = HashMap::new();
     params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("text", req.get_msg_text());
     params.insert("reply_markup", keyboard.to_string());
 
     send_msg_internal(offset, req, params).await
@@ -58,7 +58,7 @@ pub async fn send_keyboard_reply_msg(
     let msg = req.get_msg();
     let mut params = HashMap::new();
     params.insert("chat_id", msg.chat.id.to_string());
-    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("text", req.get_msg_text());
     params.insert("reply_to_message_id", msg.message_id.to_string());
     params.insert("reply_markup", keyboard.to_string());
 
@@ -89,7 +89,7 @@ pub async fn edit_message_and_remove_keyboard(
     let mut params = HashMap::new();
     params.insert("chat_id", msg.chat.id.to_string());
     params.insert("message_id", msg.message_id.to_string());
-    params.insert("text", msg.text.unwrap().to_string());
+    params.insert("text", req.get_msg_text().to_string());
     params.insert("reply_markup", "{}".to_string());
     req.method = MsgType::EditMessageText;
 
@@ -111,11 +111,11 @@ pub async fn send_request(
     client: &Client,
     api_token: &str,
     method: &str,
-    params: &HashMap<&str, String>,
+    params: HashMap<&str, String>,
 ) -> Result<serde_json::Value> {
     let url = format!("https://api.telegram.org/bot{}/{}", api_token, method);
 
-    let response = client.get(&url).query(params).send().await?;
+    let response = client.get(&url).query(&params).send().await?;
     Ok(response.json().await?)
 }
 
@@ -127,9 +127,9 @@ async fn send_msg_internal(
     debug!("Send message: {:?}", params);
     let response = send_request(
         &req.app.client,
-        &req.app.conf.tg_token,
+        &req.app.tg_token,
         msg_type_to_str(&req.method),
-        &params,
+        params,
     )
     .await?;
 

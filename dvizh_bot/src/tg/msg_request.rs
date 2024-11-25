@@ -7,6 +7,7 @@ use anyhow::Result;
 use log::error;
 use serde_json::Value;
 use tokio::sync::MutexGuard;
+
 #[derive(Debug)]
 pub struct MsgRequest {
     pub app: Application,
@@ -26,7 +27,7 @@ impl MsgRequest {
     }
 
     pub fn get_msg_text(&self) -> String {
-        self.get_msg().text.unwrap_or_default()
+        self.get_msg().text.clone().unwrap_or_default()
     }
 
     pub async fn get_dvizh_repo(&self) -> MutexGuard<'_, DvizhRepository> {
@@ -51,8 +52,8 @@ impl MsgRequest {
         Ok(())
     }
 
-    pub fn get_msg(&self) -> Message {
-        self.msg.as_ref().cloned().unwrap_or_default()
+    pub fn get_msg(&self) -> &Message {
+        self.msg.as_ref().unwrap()
     }
 
     pub fn set_msg_text(&mut self, value: &String) {

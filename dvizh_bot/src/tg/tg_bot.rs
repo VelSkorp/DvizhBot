@@ -22,12 +22,12 @@ pub async fn run(app: Application, t: MsgType) -> Result<()> {
 
         // Send the request and get the response
         let response =
-            send_request(&app.client, &app.conf.tg_token, msg_type_to_str(&t), &params).await;
+            send_request(&app.client, &app.tg_token, msg_type_to_str(&t), params).await;
         debug!("offset value - {offset}");
         // Check if there are any updates
         if let Ok(response) = response {
             if let Some(result) = response["result"].as_array() {
-                if let Err(e) = handle_message(app.clone(), result, &mut offset).await {
+                if let Err(e) = handle_message(&app, result, &mut offset).await {
                     error!("Error handling message: {}", e);
                 };
             } else {

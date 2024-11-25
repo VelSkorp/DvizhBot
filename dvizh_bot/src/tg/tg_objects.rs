@@ -1,11 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct EditedMessage {
-    edited_message: Message,
-}
-
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     pub chat: Chat,

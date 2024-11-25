@@ -27,7 +27,7 @@ impl DvizhRepository {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
             "SELECT group_id, title, date, location, description
-            FROM Events WHERE group_id = ?1 AND date >= strftime('%d.%m.%Y', 'now')",
+            FROM Events WHERE group_id = ?1 AND date >= strftime('%d.', 'now') || strftime('%m.', 'now') || strftime('%Y', 'now')",
         )?;
         let events = stmt
             .query_map(params![group_id], |row| {
