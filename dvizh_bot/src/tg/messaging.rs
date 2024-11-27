@@ -26,6 +26,20 @@ pub async fn send_msg(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_js
     send_msg_internal(offset, req, params).await
 }
 
+pub async fn edit_msg(
+    offset: &mut i64,
+    req: &mut MsgRequest,
+) -> Result<serde_json::Value> {
+    let msg = req.get_msg();
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("message_id", msg.message_id.to_string());
+    params.insert("text", req.get_msg_text().to_string());
+    req.method = MsgType::EditMessageText;
+
+    send_msg_internal(offset, req, params).await
+}
+
 pub async fn send_reply_msg(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     let msg = req.get_msg();
     let mut params = HashMap::new();
@@ -81,7 +95,7 @@ pub async fn send_photo_msg(
     send_msg_internal(offset, req, params).await
 }
 
-pub async fn edit_message_and_remove_keyboard(
+pub async fn edit_msg_and_remove_keyboard(
     offset: &mut i64,
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {

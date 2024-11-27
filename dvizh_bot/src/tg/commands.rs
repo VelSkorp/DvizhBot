@@ -1,7 +1,7 @@
 use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::tg::command_utils::CommandType;
 use crate::tg::messaging::{
-    send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
+    send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg, edit_msg,
 };
 use crate::tg::msg_request::MsgRequest;
 use crate::tg::tg_utils::parse_memes;
@@ -9,7 +9,7 @@ use crate::validations::{validate_argument_count, validate_date_format};
 use anyhow::Result;
 use log::debug;
 use rand::Rng;
-use serde_json::json;
+use serde_json::{json, Value};
 
 pub async fn handle_command(
     offset: &mut i64,
@@ -292,7 +292,26 @@ async fn handle_test_command(
     req: &mut MsgRequest,
 ) -> Result<serde_json::Value> {
     debug!("Test command was called");
+    
+    let text = req.get_translation_for("thinking").await?;
+    req.set_msg_text(&text);
+    send_reply_msg(offset, req).await?;
 
-    req.set_msg_text(&text.join(";"));
-    send_reply_msg(offset, req).await
+    let client = reqwest::Client::new();
+    let response = client
+        .get("https://v2.jokeapi.dev/joke/Any?type=single")
+        .header("accept", "application/json")
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    let json: Value = serde_json::from_str(&response)?;
+    let output = json["joke"]
+        .to_string()
+        .trim_matches('"')
+        .to_string();
+
+    req.set_msg_text(&output);
+    edit_msg(offset, req).await
 }

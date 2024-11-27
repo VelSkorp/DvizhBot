@@ -1,5 +1,5 @@
 use crate::tg::language_utils::translate_text;
-use crate::tg::messaging::{edit_message_and_remove_keyboard, remove_keyboard};
+use crate::tg::messaging::{edit_msg_and_remove_keyboard, remove_keyboard};
 use crate::tg::msg_request::MsgRequest;
 use crate::tg::tg_utils::get_horoscope;
 use anyhow::Result;
@@ -47,7 +47,7 @@ pub async fn handle_callback_query(
 
         let text = req.get_translation_for("thinking").await?;
         req.set_msg_text(&text);
-        edit_message_and_remove_keyboard(offset, req).await?;
+        edit_msg_and_remove_keyboard(offset, req).await?;
 
         let mut message = format!(
             "{} your horoscope for today: {}",
@@ -59,7 +59,7 @@ pub async fn handle_callback_query(
             message = translate_text(&req.app, &message, &lang_code).await?;
         }
         req.set_msg_text(&message);
-        edit_message_and_remove_keyboard(offset, req).await?;
+        edit_msg_and_remove_keyboard(offset, req).await?;
     }
     Ok(())
 }
