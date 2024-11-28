@@ -10,7 +10,7 @@
     "night": "Dobrej nocy! 🌙",
     "luck": "Powodzenia w życiu! :)",
     "astro": "Wybierz swój znak zodiaku z poniższych opcji! 🌟",
-    "thinking": "Thinking... 🤔",
+    "thinking": "Zastanawiam się... 🤔",
     
     "birthday_template": "Wszystkiego najlepszego dla {first_name} (@{username}) 🎉 Skończyłeś {age} lat! Niech ten rok będzie pełen radości, sukcesów i szczęśliwych chwil! 🥳",
     "event_template": "📅 *Tytuł imprezy*: {title}\n🗓 *Data*: {date}\n📍 *Lokalizacja*: {location}\n📖 *Opis*: {description}\n",

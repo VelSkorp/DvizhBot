@@ -21,8 +21,7 @@ pub async fn run(app: Application, t: MsgType) -> Result<()> {
         params.insert("timeout", "30".to_string());
 
         // Send the request and get the response
-        let response =
-            send_request(&app.client, &app.tg_token, msg_type_to_str(&t), params).await;
+        let response = send_request(&app.client, &app.tg_token, msg_type_to_str(&t), params).await;
         debug!("offset value - {offset}");
         // Check if there are any updates
         if let Ok(response) = response {

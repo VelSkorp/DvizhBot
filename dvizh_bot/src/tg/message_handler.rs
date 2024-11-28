@@ -86,8 +86,7 @@ async fn handle_new_member(
     let chat_id = req.get_msg().chat.id;
     if member.is_bot && member.username == "dvizh_wroclaw_bot" {
         handle_start_command(offset, req).await?;
-        let admins =
-            get_chat_administrators(&req.app.client, &req.app.tg_token, chat_id).await?;
+        let admins = get_chat_administrators(&req.app.client, &req.app.tg_token, chat_id).await?;
         debug!("List of {} admins: {:#?}", chat_id, admins);
         for admin in admins {
             req.get_dvizh_repo().await.add_or_update_user(

@@ -1,7 +1,8 @@
 use crate::db::db_objects::{Chat, Event, User as DbUser};
 use crate::tg::command_utils::CommandType;
+use crate::tg::language_utils::translate_text;
 use crate::tg::messaging::{
-    send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg, edit_msg,
+    edit_msg, send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
 };
 use crate::tg::msg_request::MsgRequest;
 use crate::tg::tg_utils::parse_memes;
@@ -39,8 +40,15 @@ pub async fn handle_command(
         Some(CommandType::SetBirthdateFor) => match validate_argument_count(command_args, 2) {
             Ok(mut args) => match validate_date_format(&args[1]) {
                 Ok(()) => {
-                    handle_set_birthdate_for_command(&args.remove(0), None, None, args.remove(1), offset, req)
-                        .await
+                    handle_set_birthdate_for_command(
+                        &args.remove(0),
+                        None,
+                        None,
+                        args.remove(1),
+                        offset,
+                        req,
+                    )
+                    .await
                 }
                 Err(error_key) => {
                     let text = req.get_translation_for(&error_key).await?;
@@ -66,6 +74,7 @@ pub async fn handle_command(
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         Some(CommandType::Luck) => handle_luck_command(offset, req).await,
+        Some(CommandType::Joke) => handle_joke_command(offset, req).await,
         Some(CommandType::Test) => match validate_argument_count(command_args, 1) {
             Ok(args) => handle_test_command(args, offset, req).await,
             Err(error_key) => {
@@ -184,11 +193,7 @@ async fn handle_add_event_command(
     let chat_id = req.get_msg().chat.id;
     let user = req.get_msg().from.username.clone();
 
-    if req
-        .get_dvizh_repo()
-        .await
-        .is_not_admin(&user, chat_id)?
-    {
+    if req.get_dvizh_repo().await.is_not_admin(&user, chat_id)? {
         let text = req.get_translation_for("error_not_admin").await?;
         req.set_msg_text(&text);
         return send_msg(offset, req).await;
@@ -286,13 +291,9 @@ async fn handle_luck_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     send_reply_msg(offset, req).await
 }
 
-async fn handle_test_command(
-    text: Vec<String>,
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value> {
-    debug!("Test command was called");
-    
+async fn handle_joke_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
+    debug!("Joke command was called");
+
     let text = req.get_translation_for("thinking").await?;
     req.set_msg_text(&text);
     send_reply_msg(offset, req).await?;
@@ -307,11 +308,26 @@ async fn handle_test_command(
         .await?;
 
     let json: Value = serde_json::from_str(&response)?;
-    let output = json["joke"]
-        .to_string()
-        .trim_matches('"')
-        .to_string();
+    let mut joke = json["joke"].to_string().trim_matches('"').to_string();
 
-    req.set_msg_text(&output);
+    debug!("{joke}");
+
+    let lang_code = req.get_dvizh_repo().await.get_chat_language_code(req.get_msg().chat.id)?;
+    if lang_code != "en" {
+        joke = translate_text(&req.app, &joke, &lang_code).await?;
+    }
+
+    req.set_msg_text(&joke);
+    edit_msg(offset, req).await
+}
+
+async fn handle_test_command(
+    text: Vec<String>,
+    offset: &mut i64,
+    req: &mut MsgRequest,
+) -> Result<serde_json::Value> {
+    debug!("Test command was called");
+
+    req.set_msg_text(&"test".to_string());
     edit_msg(offset, req).await
 }

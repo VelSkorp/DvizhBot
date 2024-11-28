@@ -26,10 +26,7 @@ pub async fn send_msg(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_js
     send_msg_internal(offset, req, params).await
 }
 
-pub async fn edit_msg(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value> {
+pub async fn edit_msg(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     let msg = req.get_msg();
     let mut params = HashMap::new();
     params.insert("chat_id", msg.chat.id.to_string());
@@ -146,6 +143,12 @@ async fn send_msg_internal(
         params,
     )
     .await?;
+
+    if let Some(new_message_id) = response["result"]["message_id"].as_i64() {
+        if let Some(ref mut message) = req.msg {
+            message.message_id = new_message_id;
+        }
+    }
 
     *offset = req.update_id + 1;
     debug!("Updated offset: {}", offset);

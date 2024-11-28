@@ -7,13 +7,18 @@ use chrono::{Datelike, NaiveDate, Utc};
 use log::debug;
 use std::collections::HashMap;
 
-pub async fn perform_happy_birthday(
-    app: &Application,
-    birthday: &str,
-) -> Result<()> {
-    let users = app.dvizh_repo.lock().await.get_users_by_birthday(birthday)?;
+pub async fn perform_happy_birthday(app: &Application, birthday: &str) -> Result<()> {
+    let users = app
+        .dvizh_repo
+        .lock()
+        .await
+        .get_users_by_birthday(birthday)?;
     for user in users {
-        let chats = app.dvizh_repo.lock().await.get_chats_for_user(&user.username)?;
+        let chats = app
+            .dvizh_repo
+            .lock()
+            .await
+            .get_chats_for_user(&user.username)?;
         for chat in chats {
             send_happy_birthday(&app, &user, chat).await?;
         }
@@ -21,9 +26,7 @@ pub async fn perform_happy_birthday(
     Ok(())
 }
 
-pub async fn perform_events_reminder(
-    app: &Application,
-) -> Result<()> {
+pub async fn perform_events_reminder(app: &Application) -> Result<()> {
     let events = app.dvizh_repo.lock().await.get_today_events()?;
     for event in events {
         reminde_events(&app, event).await?;
@@ -79,7 +82,9 @@ pub async fn send_happy_birthday(
     let message = template
         .replace(
             "{first_name}",
-            user.first_name.as_ref().unwrap_or(&"unknown 🙁".to_string()),
+            user.first_name
+                .as_ref()
+                .unwrap_or(&"unknown 🙁".to_string()),
         )
         .replace("{username}", &user.username)
         .replace("{age}", &age.to_string());

@@ -16,9 +16,9 @@ use rust_bert::marian::{
 use rust_bert::pipelines::common::{ModelResource, ModelType};
 use rust_bert::pipelines::translation::{TranslationConfig, TranslationModel};
 use rust_bert::resources::RemoteResource;
-use tch::Device;
 use std::str::FromStr;
 use std::sync::Arc;
+use tch::Device;
 use tokio::sync::{Mutex, RwLock};
 
 #[derive(Derivative, Clone)]
@@ -61,9 +61,7 @@ impl Application {
 
         debug!("Args: {}", arg_line);
 
-        let translation_model = Arc::new(Mutex::new(
-            create_translation_model()?
-        ));
+        let translation_model = Arc::new(Mutex::new(create_translation_model()?));
 
         Ok(Application {
             client,
