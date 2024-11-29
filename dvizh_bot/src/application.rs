@@ -9,13 +9,12 @@ use derivative::Derivative;
 use env_logger;
 use log::debug;
 use reqwest::Client;
-use rust_bert::marian::{
-    MarianConfigResources, MarianModelResources, MarianSourceLanguages, MarianSpmResources,
-    MarianTargetLanguages, MarianVocabResources,
+use rust_bert::m2m_100::{
+    M2M100ConfigResources, M2M100ModelResources, M2M100SourceLanguages, M2M100TargetLanguages,
+    M2M100VocabResources,
 };
-use rust_bert::pipelines::common::{ModelResource, ModelType};
 use rust_bert::pipelines::translation::{TranslationConfig, TranslationModel};
-use rust_bert::resources::RemoteResource;
+use rust_bert::resources::{Device, RemoteResource};
 use std::str::FromStr;
 use std::sync::Arc;
 use tch::Device;
@@ -75,22 +74,22 @@ impl Application {
 }
 
 fn create_translation_model() -> Result<TranslationModel> {
-    let model_resource = ModelResource::Torch(Box::new(RemoteResource::from_pretrained(
-        MarianModelResources::ENGLISH2RUSSIAN,
-    )));
-    let config_resource = RemoteResource::from_pretrained(MarianConfigResources::ENGLISH2RUSSIAN);
-    let vocab_resource = RemoteResource::from_pretrained(MarianVocabResources::ENGLISH2RUSSIAN);
-    let spm_resource = RemoteResource::from_pretrained(MarianSpmResources::ENGLISH2RUSSIAN);
+    // M2M100 Resource Loading
+    let model_resource = RemoteResource::from_pretrained(M2M100ModelResources::M2M100_418M);
+    let config_resource = RemoteResource::from_pretrained(M2M100ConfigResources::M2M100_418M);
+    let vocab_resource = RemoteResource::from_pretrained(M2M100VocabResources::M2M100_418M);
 
-    let source_languages = MarianSourceLanguages::ENGLISH2RUSSIAN;
-    let target_languages = MarianTargetLanguages::ENGLISH2RUSSIAN;
+    // Defining supported languages
+    let source_languages = M2M100SourceLanguages::M2M100_418M;
+    let target_languages = M2M100TargetLanguages::M2M100_418M;
 
+    // Creating a translation configuration
     let translation_config = TranslationConfig::new(
-        ModelType::Marian,
+        ModelType::M2M100,
         model_resource,
         config_resource,
         vocab_resource,
-        Some(spm_resource),
+        None,
         source_languages,
         target_languages,
         Device::cuda_if_available(),

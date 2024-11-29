@@ -17,7 +17,7 @@ pub async fn translate_text(app: &Application, text: &str, target_lang: &str) ->
         app.translation_model
             .lock()
             .await
-            .translate(&[text], Language::English, lang)?;
+            .translate(&[text], "en", target_lang)?;
 
     Ok(tanlation.join(";"))
 }
