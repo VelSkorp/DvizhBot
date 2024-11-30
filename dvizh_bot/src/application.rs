@@ -13,8 +13,9 @@ use rust_bert::m2m_100::{
     M2M100ConfigResources, M2M100ModelResources, M2M100SourceLanguages, M2M100TargetLanguages,
     M2M100VocabResources,
 };
-use rust_bert::pipelines::translation::{TranslationConfig, TranslationModel};
-use rust_bert::resources::{Device, RemoteResource};
+use rust_bert::pipelines::common::ModelResource;
+use rust_bert::resources::RemoteResource;
+use rust_bert::pipelines::translation::{TranslationModel, TranslationConfig};
 use std::str::FromStr;
 use std::sync::Arc;
 use tch::Device;
@@ -75,7 +76,9 @@ impl Application {
 
 fn create_translation_model() -> Result<TranslationModel> {
     // M2M100 Resource Loading
-    let model_resource = RemoteResource::from_pretrained(M2M100ModelResources::M2M100_418M);
+    let model_resource = ModelResource::Torch(Box::new(
+        RemoteResource::from_pretrained(M2M100ModelResources::M2M100_418M),
+    ));
     let config_resource = RemoteResource::from_pretrained(M2M100ConfigResources::M2M100_418M);
     let vocab_resource = RemoteResource::from_pretrained(M2M100VocabResources::M2M100_418M);
 
@@ -85,15 +88,16 @@ fn create_translation_model() -> Result<TranslationModel> {
 
     // Creating a translation configuration
     let translation_config = TranslationConfig::new(
-        ModelType::M2M100,
+        rust_bert::pipelines::common::ModelType::M2M100,
         model_resource,
         config_resource,
         vocab_resource,
-        None,
+        None, // SentencePiece model is optional for M2M100
         source_languages,
         target_languages,
-        Device::cuda_if_available(),
+        Device::Cpu, // or Device::cuda_if_available() if GPU is present
     );
 
+    // Return the TranslationModel
     Ok(TranslationModel::new(translation_config)?)
 }
