@@ -73,7 +73,7 @@ pub async fn handle_error(
 ) -> Result<serde_json::Value> {
     error!("Handle error: {error}");
     let text = req.get_translation_for("wrong").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     send_error_msg(offset, req.get_msg().chat.id, req).await
 }
 
@@ -104,8 +104,8 @@ async fn handle_new_member(
                 .add_admin(&admin.username, chat_id)?;
         }
     } else {
-        let text = &req.get_translation_for("welcome").await?;
-        req.set_msg_text(&format!("{} {}", text, member.first_name));
+        let text = req.get_translation_for("welcome").await?;
+        req.set_msg_text(&format!("{} {}", &text.expect_text()?, member.first_name));
         req.get_dvizh_repo().await.add_or_update_user(
             DbUser::new(
                 member.username,

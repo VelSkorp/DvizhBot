@@ -46,7 +46,7 @@ pub async fn handle_callback_query(
         };
 
         let text = req.get_translation_for("thinking").await?;
-        req.set_msg_text(&text);
+        req.set_msg_text(&text.expect_text()?);
         edit_msg_and_remove_keyboard(offset, req).await?;
 
         let mut message = format!(

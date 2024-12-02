@@ -25,6 +25,7 @@ mod application;
 mod errors;
 mod translations {
     pub mod language_cache;
+    pub mod translation_value;
 }
 mod validations;
 

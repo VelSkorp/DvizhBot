@@ -4,11 +4,12 @@ use log::debug;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
+use crate::translations::translation_value::TranslationValue;
 
 #[derive(Debug)]
 pub struct LanguageCache {
     chat_language_cache: RwLock<HashMap<i64, String>>,
-    translation_cache: RwLock<HashMap<String, HashMap<String, String>>>,
+    translation_cache: RwLock<HashMap<String, HashMap<String, TranslationValue>>>,
 }
 
 impl LanguageCache {
@@ -24,7 +25,7 @@ impl LanguageCache {
         dvizh_repo: &Arc<Mutex<DvizhRepository>>,
         group_id: i64,
         key: &str,
-    ) -> Result<String> {
+    ) -> Result<TranslationValue> {
         debug!("Get translation for {key}");
 
         // Acquire read lock on chat_language_cache
@@ -42,7 +43,7 @@ impl LanguageCache {
         };
 
         // Acquire read lock on translation_cache
-        let translation = {
+        let translation_value = {
             let cache = self.translation_cache.read().await;
             if let Some(translations) = cache.get(&lang_code) {
                 translations.get(key).cloned()
@@ -51,17 +52,18 @@ impl LanguageCache {
             }
         };
 
-        let translation = match translation {
-            Some(t) => t,
+        let translation = match translation_value {
+            Some(value) => value,
             None => {
                 // Load translations and update cache
                 let translations = self.load_translations_for_language(&lang_code)?;
                 let mut cache = self.translation_cache.write().await;
                 cache.insert(lang_code.clone(), translations.clone());
-                translations
-                    .get(key)
-                    .cloned()
-                    .unwrap_or_else(|| key.to_string())
+    
+                translations.get(key).cloned().unwrap_or_else(|| {
+                    // If key is not found after loading, return default Text
+                    TranslationValue::Text(key.to_string())
+                })
             }
         };
 
@@ -85,7 +87,7 @@ impl LanguageCache {
         Ok(code)
     }
 
-    fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, String>> {
+    fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, TranslationValue>> {
         debug!("Load {lang_code} translation cahce");
         let file_path = format!("src/translations/{lang_code}.json");
         let data = std::fs::read_to_string(&file_path)?;

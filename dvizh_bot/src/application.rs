@@ -9,13 +9,10 @@ use derivative::Derivative;
 use env_logger;
 use log::debug;
 use reqwest::Client;
-use rust_bert::m2m_100::{
-    M2M100ConfigResources, M2M100ModelResources, M2M100SourceLanguages, M2M100TargetLanguages,
-    M2M100VocabResources,
-};
+use rust_bert::t5::T5ModelResources;
 use rust_bert::pipelines::common::ModelResource;
 use rust_bert::resources::RemoteResource;
-use rust_bert::pipelines::translation::{TranslationModel, TranslationConfig};
+use rust_bert::pipelines::translation::{Language, TranslationModel, TranslationConfig};
 use std::str::FromStr;
 use std::sync::Arc;
 use tch::Device;
@@ -75,27 +72,22 @@ impl Application {
 }
 
 fn create_translation_model() -> Result<TranslationModel> {
-    // M2M100 Resource Loading
     let model_resource = ModelResource::Torch(Box::new(
-        RemoteResource::from_pretrained(M2M100ModelResources::M2M100_418M),
+        RemoteResource::from_pretrained(T5ModelResources::T5_SMALL),
     ));
-    let config_resource = RemoteResource::from_pretrained(M2M100ConfigResources::M2M100_418M);
-    let vocab_resource = RemoteResource::from_pretrained(M2M100VocabResources::M2M100_418M);
-
-    // Defining supported languages
-    let source_languages = M2M100SourceLanguages::M2M100_418M;
-    let target_languages = M2M100TargetLanguages::M2M100_418M;
+    let config_resource = RemoteResource::from_pretrained(T5ModelResources::T5_SMALL);
+    let vocab_resource = RemoteResource::from_pretrained(T5ModelResources::T5_SMALL);
 
     // Creating a translation configuration
     let translation_config = TranslationConfig::new(
-        rust_bert::pipelines::common::ModelType::M2M100,
+        rust_bert::pipelines::common::ModelType::T5,
         model_resource,
         config_resource,
         vocab_resource,
-        None, // SentencePiece model is optional for M2M100
-        source_languages,
-        target_languages,
-        Device::Cpu, // or Device::cuda_if_available() if GPU is present
+        None, // No SentencePiece model for T5
+        vec![Language::English],
+        vec![Language::Russian],
+        Device::Cpu,
     );
 
     // Return the TranslationModel

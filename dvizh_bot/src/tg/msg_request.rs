@@ -7,6 +7,7 @@ use anyhow::Result;
 use log::error;
 use serde_json::Value;
 use tokio::sync::MutexGuard;
+use crate::translations::translation_value::TranslationValue;
 
 #[derive(Debug)]
 pub struct MsgRequest {
@@ -34,7 +35,7 @@ impl MsgRequest {
         self.app.dvizh_repo.lock().await
     }
 
-    pub async fn get_translation_for(&mut self, key: &str) -> Result<String> {
+    pub async fn get_translation_for(&mut self, key: &str) -> Result<TranslationValue> {
         // Acquire a write lock on language_cache
         let mut language_cache = self.app.language_cache.write().await;
         Ok(language_cache

@@ -41,8 +41,8 @@ pub async fn reminde_events(app: &Application, event: Event) -> Result<serde_jso
         .await
         .get_translation_for_chat(&app.dvizh_repo, event.group_id, "event_template")
         .await?;
-
-    let message = template
+    
+    let message = template.expect_text()?
         .replace("{title}", &event.title)
         .replace("{date}", &event.date)
         .replace("{location}", &event.location)
@@ -79,7 +79,7 @@ pub async fn send_happy_birthday(
     let today = Utc::now().date_naive();
     let age = today.year() - birth_date.year();
 
-    let message = template
+    let message = template.expect_text()?
         .replace(
             "{first_name}",
             user.first_name
@@ -115,7 +115,7 @@ pub async fn send_daily_greeting(app: &Application, key: &str) -> Result<()> {
             .await?;
         let mut params = HashMap::new();
         params.insert("chat_id", chat_id.to_string());
-        params.insert("text", message.to_string());
+        params.insert("text", message.clone().expect_text()?);
         send_request(
             &app.client,
             &app.tg_token,
@@ -123,7 +123,7 @@ pub async fn send_daily_greeting(app: &Application, key: &str) -> Result<()> {
             params,
         )
         .await?;
-        debug!("Sent daily greeting: {message} in {chat_id}");
+        debug!("Sent daily greeting: {:#?} in {}", message, chat_id);
     }
     Ok(())
 }

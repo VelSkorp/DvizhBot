@@ -22,5 +22,33 @@
     "error_invalid_date": "Nieprawidłowy format daty. Użyj formatu DD.MM.RRRR.",
     "error_insufficient_arguments": "Nieprawidłowa liczba argumentów. Sprawdź format polecenia i spróbuj ponownie.",
     "error_missing_arguments": "Brak wymaganych argumentów dla tego polecenia.",
-    "wrong": "Nieprawidłowe polecenie."
+    "wrong": "Nieprawidłowe polecenie.",
+    
+    "8ball": [
+        "Absolutnie!",
+        "Nie ma szans.",
+        "Ty stawiasz!",
+        "Nie licz na to.",
+        "Bez wątpienia.",
+        "Nie wstrzymywałbym oddechu.",
+        "Tak, chyba że to zepsujesz.",
+        "Nie za milion lat.",
+        "Zdecydowanie tak.",
+        "Absolutnie nie.",
+        "Wszystko wskazuje na to, że tak.",
+        "Moje źródła mówią, że nie.",
+        "Zapytaj później.",
+        "Lepiej nie mówić teraz.",
+        "Odpowiedź niewyraźna, spróbuj ponownie.",
+        "Skoncentruj się i zapytaj ponownie.",
+        "To twój szczęśliwy dzień!",
+        "Dziś nie jest twój dzień.",
+        "Ty sobie życzysz!",
+        "W swoich snach.",
+        "Tak, i to już najwyższy czas!",
+        "Nie, i wiesz dlaczego.",
+        "Może, jeśli bardziej się postarasz.",
+        "Tylko jeśli świnie latają.",
+        "Jasne, czemu nie?"
+    ]
 }

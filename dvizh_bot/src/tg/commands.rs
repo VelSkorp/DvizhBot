@@ -11,6 +11,7 @@ use anyhow::Result;
 use log::debug;
 use rand::Rng;
 use serde_json::{json, Value};
+use rand::prelude::SliceRandom;
 
 pub async fn handle_command(
     offset: &mut i64,
@@ -27,13 +28,13 @@ pub async fn handle_command(
                 Ok(()) => handle_set_birthdate_command(args.remove(0), offset, req).await,
                 Err(error_key) => {
                     let text = req.get_translation_for(&error_key).await?;
-                    req.set_msg_text(&text);
+                    req.set_msg_text(&text.expect_text()?);
                     send_msg(offset, req).await
                 }
             },
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(&text);
+                req.set_msg_text(&text.expect_text()?);
                 send_msg(offset, req).await
             }
         },
@@ -52,13 +53,13 @@ pub async fn handle_command(
                 }
                 Err(error_key) => {
                     let text = req.get_translation_for(&error_key).await?;
-                    req.set_msg_text(&text);
+                    req.set_msg_text(&text.expect_text()?);
                     send_msg(offset, req).await
                 }
             },
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(&text);
+                req.set_msg_text(&text.expect_text()?);
                 send_msg(offset, req).await
             }
         },
@@ -66,7 +67,7 @@ pub async fn handle_command(
             Ok(args) => handle_add_event_command(args, offset, req).await,
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(&text);
+                req.set_msg_text(&text.expect_text()?);
                 send_msg(offset, req).await
             }
         },
@@ -75,11 +76,19 @@ pub async fn handle_command(
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         Some(CommandType::Luck) => handle_luck_command(offset, req).await,
         Some(CommandType::Joke) => handle_joke_command(offset, req).await,
+        Some(CommandType::EightBall) => match validate_argument_count(command_args, 1) {
+            Ok(_) => handle_8ball_command(offset, req).await,
+            Err(error_key) => {
+                let text = req.get_translation_for(&error_key).await?;
+                req.set_msg_text(&text.expect_text()?);
+                send_msg(offset, req).await
+            }
+        },
         Some(CommandType::Test) => match validate_argument_count(command_args, 1) {
             Ok(args) => handle_test_command(args, offset, req).await,
             Err(error_key) => {
                 let text = req.get_translation_for(&error_key).await?;
-                req.set_msg_text(&text);
+                req.set_msg_text(&text.expect_text()?);
                 send_msg(offset, req).await
             }
         },
@@ -114,7 +123,7 @@ pub async fn handle_start_command(
     }
 
     let text = req.get_translation_for("hello").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     let keyboard = json!({
         "inline_keyboard": [
             [
@@ -135,14 +144,14 @@ pub async fn handle_help_command(
 ) -> Result<serde_json::Value> {
     debug!("Help command was called");
     let text = req.get_translation_for("help").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     send_msg(offset, req).await
 }
 
 async fn handle_hello_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Hello command was called");
     let text = req.get_translation_for("hello").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     send_msg(offset, req).await
 }
 
@@ -180,7 +189,7 @@ async fn handle_set_birthdate_for_command(
         chat_id,
     )?;
     let text = req.get_translation_for("remeber_birthday").await?;
-    req.set_msg_text(&format!("{} {}", text, date));
+    req.set_msg_text(&format!("{} {}", text.expect_text()?, date));
     send_msg(offset, req).await
 }
 
@@ -195,7 +204,7 @@ async fn handle_add_event_command(
 
     if req.get_dvizh_repo().await.is_not_admin(&user, chat_id)? {
         let text = req.get_translation_for("error_not_admin").await?;
-        req.set_msg_text(&text);
+        req.set_msg_text(&text.expect_text()?);
         return send_msg(offset, req).await;
     }
 
@@ -207,7 +216,7 @@ async fn handle_add_event_command(
         args[3].to_string(),
     ))?;
     let text = req.get_translation_for("remeber_event").await?;
-    req.set_msg_text(&format!("{} {}", text, args[0]));
+    req.set_msg_text(&format!("{} {}", text.expect_text()?, args[0]));
     send_msg(offset, req).await
 }
 
@@ -224,16 +233,16 @@ async fn handle_list_events_command(
 
     if events.is_empty() {
         let text = req.get_translation_for("no_upcoming_event").await?;
-        req.set_msg_text(&text);
+        req.set_msg_text(&text.expect_text()?);
         return send_msg(offset, req).await;
     }
 
     let text = req.get_translation_for("upcoming_event").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     send_msg(offset, req).await?;
 
     // Retrieve the entire event template from translation
-    let template = req.get_translation_for("event_template").await?;
+    let template = req.get_translation_for("event_template").await?.expect_text()?;
 
     // Send each event using the template
     for event in events {
@@ -269,7 +278,7 @@ async fn handle_astro_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
     debug!("Astro command was called");
 
     let text = req.get_translation_for("astro").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     let keyboard = json!({
         "inline_keyboard": [
             [{ "text": "Aries", "callback_data": "zodiac_aries" }, { "text": "Taurus", "callback_data": "zodiac_taurus" }],
@@ -287,7 +296,7 @@ async fn handle_astro_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
 async fn handle_luck_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Luck command was called");
     let text = req.get_translation_for("luck").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     send_reply_msg(offset, req).await
 }
 
@@ -295,7 +304,7 @@ async fn handle_joke_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     debug!("Joke command was called");
 
     let text = req.get_translation_for("thinking").await?;
-    req.set_msg_text(&text);
+    req.set_msg_text(&text.expect_text()?);
     send_reply_msg(offset, req).await?;
 
     let client = reqwest::Client::new();
@@ -321,6 +330,21 @@ async fn handle_joke_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     edit_msg(offset, req).await
 }
 
+async fn handle_8ball_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
+    debug!("8ball command was called");
+
+    let text = req.get_translation_for("thinking").await?;
+    req.set_msg_text(&text.expect_text()?);
+    send_reply_msg(offset, req).await?;
+
+    let translation = req.get_translation_for("8ball").await?.expect_array()?;
+    let not_found = &"404: Not found".to_string();
+    let text = translation.choose(&mut rand::thread_rng()).unwrap_or(not_found);
+    
+    req.set_msg_text(text);
+    send_reply_msg(offset, req).await
+}
+
 async fn handle_test_command(
     text: Vec<String>,
     offset: &mut i64,
@@ -328,6 +352,6 @@ async fn handle_test_command(
 ) -> Result<serde_json::Value> {
     debug!("Test command was called");
 
-    req.set_msg_text(&"test".to_string());
+    req.set_msg_text(&text.join(";"));
     edit_msg(offset, req).await
 }

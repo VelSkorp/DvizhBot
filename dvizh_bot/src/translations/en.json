@@ -22,5 +22,33 @@
     "error_invalid_date": "Invalid date format. Please use the format DD.MM.YYYY.",
     "error_insufficient_arguments": "Invalid number of arguments. Please check the command format and try again.",
     "error_missing_arguments": "Missing required arguments for this command.",
-    "wrong": "Wrong command."
+    "wrong": "Wrong command.",
+
+    "8ball": [
+        "Absolutely!",
+        "No chance.",
+        "You bet!",
+        "Don't count on it.",
+        "Without a doubt.",
+        "I wouldn't hold my breath.",
+        "Yes, unless you mess it up.",
+        "Not in a million years.",
+        "Definitely yes.",
+        "Absolutely not.",
+        "Signs point to yes.",
+        "My sources say no.",
+        "Ask again later.",
+        "Better not tell you now.",
+        "Reply hazy, try again.",
+        "Concentrate and ask again.",
+        "It's your lucky day!",
+        "Today is not your day.",
+        "You wish!",
+        "In your dreams.",
+        "Yes, and it's about time!",
+        "No, and you know why.",
+        "Maybe, if you try harder.",
+        "Only if pigs fly.",
+        "Sure, why not?"
+    ]
 }
