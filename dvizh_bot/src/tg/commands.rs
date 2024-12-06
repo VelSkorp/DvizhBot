@@ -342,7 +342,7 @@ async fn handle_8ball_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
     let text = translation.choose(&mut rand::thread_rng()).unwrap_or(not_found);
     
     req.set_msg_text(text);
-    send_reply_msg(offset, req).await
+    edit_msg(offset, req).await
 }
 
 async fn handle_test_command(

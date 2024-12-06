@@ -1,7 +1,7 @@
 {
     "welcome": "Welcome",
     "hello": "Hello, I'm a bot of Dvizh Wrocław🔥",
-    "help": "*Help Menu*:\n\r\n\t- /hello: Say hello to the bot.\r\n\t- /help: Show this help menu.\r\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: DD.MM.YYYY)\r\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: DD.MM.YYYY)\r\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: DD.MM.YYYY)\r\n\t- /listevents: List all events for this group.\r\n\t- /meme: Send radnom mem from reddit.\r\n\t- /luck: Wish me luck.\r\n\t- /astro: Get personalized daily horoscope.",
+    "help": "*Help Menu*:\n\r\n\t- /hello: Say hello to the bot.\r\n\t- /help: Show this help menu.\r\n\t- /setbirthday \"[date]\": Set your birthdate. (Format: DD.MM.YYYY)\r\n\t- /setbirthdayfor \"[@username]\" \"[date]\": Set birthdate for another user. (Format: DD.MM.YYYY)\r\n\t- /addevent \"[title]\" \"[date]\" \"[location]\" \"[description]\": Add a new event to the group. (Date format: DD.MM.YYYY)\r\n\t- /listevents: List all events for this group.\r\n\t- /meme: Send radnom mem from reddit.\r\n\t- /luck: Wish me luck.\r\n\t- /astro: Get personalized daily horoscope.\r\n\t- /joke: Tell a joke..\r\n\t- /8ball: Help me make a decision.",
     "remeber_birthday": "I memorized this day",
     "remeber_event": "I memorized this event",
     "no_upcoming_event": "There is no upcoming events.",
