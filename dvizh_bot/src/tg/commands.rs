@@ -92,6 +92,7 @@ pub async fn handle_command(
                 send_msg(offset, req).await
             }
         },
+        Some(CommandType::Tease) => handle_tease_command(offset, req).await,
         None => Ok(serde_json::Value::Null),
     }
 }
@@ -342,6 +343,32 @@ async fn handle_8ball_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
     let text = translation.choose(&mut rand::thread_rng()).unwrap_or(not_found);
     
     req.set_msg_text(text);
+    edit_msg(offset, req).await
+}
+
+async fn handle_tease_command(
+    offset: &mut i64,
+    req: &mut MsgRequest,
+) -> Result<serde_json::Value> {
+    debug!("Tease command was called");
+
+    let text = req.get_translation_for("thinking").await?;
+    req.set_msg_text(&text.expect_text()?);
+    send_reply_msg(offset, req).await?;
+    
+    let chat_id = req.get_msg().chat.id;
+    let lang_code = req.get_dvizh_repo().await.get_chat_language_code(chat_id)?;
+    let url = format!("https://evilinsult.com/generate_insult.php?lang={}", lang_code);
+    let client = reqwest::Client::new();
+    let response = client
+        .get(url)
+        .header("accept", "application/json")
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    req.set_msg_text(&response);
     edit_msg(offset, req).await
 }
 
