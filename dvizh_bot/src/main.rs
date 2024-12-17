@@ -41,6 +41,7 @@ pub use translations::language_cache::LanguageCache;
 #[tokio::main]
 async fn main() -> Result<()> {
     let app = Application::init()?;
+    app.init_meme_cache();
 
     tokio::spawn(check_and_perform_daily_operations(app.clone()));
 

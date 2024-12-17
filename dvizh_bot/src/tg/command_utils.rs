@@ -12,6 +12,7 @@ pub enum CommandType {
     Luck,
     Joke,
     EightBall,
+    Tease,
     Test,
 }
 
@@ -29,6 +30,7 @@ pub fn command_str_to_type(t: &str) -> Option<CommandType> {
         "luck" => Some(CommandType::Luck),
         "joke" => Some(CommandType::Joke),
         "8ball" => Some(CommandType::EightBall),
+        "tease" => Some(CommandType::Tease),
         "test" => Some(CommandType::Test),
         _ => None,
     }

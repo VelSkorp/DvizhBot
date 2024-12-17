@@ -7,7 +7,7 @@ use args::Verbose;
 use clap::Parser;
 use derivative::Derivative;
 use env_logger;
-use log::debug;
+use log::{debug, error};
 use reqwest::Client;
 use rust_bert::t5::T5ModelResources;
 use rust_bert::pipelines::common::ModelResource;
@@ -17,6 +17,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tch::Device;
 use tokio::sync::{Mutex, RwLock};
+use crate::tg::tg_utils::parse_memes;
 
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
@@ -68,6 +69,22 @@ impl Application {
             meme_cache,
             translation_model,
         })
+    }
+
+    /// Initializes the meme cache in a background task.
+    /// This method spawns a task that parses memes and appends them to the meme cache.
+    pub fn init_meme_cache(&self) {
+        let app = self.clone();
+        tokio::spawn(async move {
+            match parse_memes().await {
+                Ok(mut memes) => {
+                    app.meme_cache.write().await.append(&mut memes);
+                }
+                Err(e) => {
+                    error!("Failed to parse memes: {:?}", e);
+                }
+            }
+        });
     }
 }
 

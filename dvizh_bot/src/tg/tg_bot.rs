@@ -12,8 +12,10 @@ use tokio::time::{interval_at, Duration, Instant};
 
 pub async fn run(app: Application, t: MsgType) -> Result<()> {
     debug!("Bot run");
+
     // Set the initial offset to 0
     let mut offset: i64 = 0;
+    
     loop {
         // Set up the parameters for the getUpdates method
         let mut params = HashMap::new();

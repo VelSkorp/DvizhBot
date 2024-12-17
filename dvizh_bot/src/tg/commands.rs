@@ -263,11 +263,9 @@ async fn handle_list_events_command(
 async fn handle_meme_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Meme command was called");
     let mut mem_cnt = req.app.meme_cache.read().await.len();
-    if mem_cnt <= 2 {
+    if mem_cnt <= 5 {
         debug!("get and load meme chache");
-        let mut memes = parse_memes().await?;
-        req.app.meme_cache.write().await.append(&mut memes);
-        mem_cnt = req.app.meme_cache.read().await.len();
+        req.app.init_meme_cache();
     }
     debug!("Mem count: {mem_cnt}");
     let random_index = rand::thread_rng().gen_range(0..mem_cnt);
