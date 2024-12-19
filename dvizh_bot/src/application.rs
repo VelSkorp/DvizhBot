@@ -9,9 +9,8 @@ use derivative::Derivative;
 use env_logger;
 use log::{debug, error};
 use reqwest::Client;
-use rust_bert::t5::T5ModelResources;
-use rust_bert::pipelines::common::ModelResource;
-use rust_bert::resources::RemoteResource;
+use rust_bert::pipelines::common::{ModelResource, ModelType};
+use rust_bert::resources::LocalResource;
 use rust_bert::pipelines::translation::{Language, TranslationModel, TranslationConfig};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -89,24 +88,35 @@ impl Application {
 }
 
 fn create_translation_model() -> Result<TranslationModel> {
-    let model_resource = ModelResource::Torch(Box::new(
-        RemoteResource::from_pretrained(T5ModelResources::T5_SMALL),
-    ));
-    let config_resource = RemoteResource::from_pretrained(T5ModelResources::T5_SMALL);
-    let vocab_resource = RemoteResource::from_pretrained(T5ModelResources::T5_SMALL);
+    // Prepare the local resources for the model, config, vocabulary, and merges
+    let model_resource = ModelResource::Torch(Box::new(LocalResource {
+        local_path: "./models/wmt19-en-ru/pytorch_model.bin".into(),
+    }));
+    let config_resource = LocalResource {
+        local_path: "./models/wmt19-en-ru/config.json".into(),
+    };
+    let vocab_resource = LocalResource {
+        local_path: "./models/wmt19-en-ru/vocab.src.json".into(),
+    };
 
-    // Creating a translation configuration
-    let translation_config = TranslationConfig::new(
-        rust_bert::pipelines::common::ModelType::T5,
+    // WMT19 models often use a BPE codes file as merges
+    let merges_resource = Some(LocalResource {
+        local_path: "./models/wmt19-en-ru/bpe.codes".into(),
+    });
+
+    // Create the translation configuration
+    let config = TranslationConfig::new(
+        ModelType::Marian,       // Try treating the WMT19 model as a Marian model
         model_resource,
         config_resource,
         vocab_resource,
-        None, // No SentencePiece model for T5
-        vec![Language::English],
-        vec![Language::Russian],
+        merges_resource,
+        vec![Language::English], // source language(s)
+        vec![Language::Russian], // target language(s)
         Device::Cpu,
     );
 
-    // Return the TranslationModel
-    Ok(TranslationModel::new(translation_config)?)
+    // Initialize the TranslationModel with the given configuration
+    let model = TranslationModel::new(config)?;
+    Ok(model)
 }
