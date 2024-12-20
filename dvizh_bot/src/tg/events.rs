@@ -104,7 +104,7 @@ pub async fn send_happy_birthday(
     .await
 }
 
-pub async fn send_daily_greeting(app: &Application, key: &str) -> Result<()> {
+pub async fn send_greeting(app: &Application, key: &str) -> Result<()> {
     let chats = app.dvizh_repo.lock().await.get_all_chat_ids()?;
     for chat_id in chats {
         let message = app

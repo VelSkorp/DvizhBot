@@ -1,5 +1,5 @@
 use crate::application::Application;
-use crate::tg::events::{perform_events_reminder, perform_happy_birthday, send_daily_greeting};
+use crate::tg::events::{perform_events_reminder, perform_happy_birthday, send_greeting};
 use crate::tg::message_handler::handle_message;
 use crate::tg::messaging::send_request;
 use crate::tg::msg_type_utils::{msg_type_to_str, MsgType};
@@ -73,14 +73,19 @@ pub async fn check_and_perform_daily_operations(app: Application) -> Result<()> 
 
                 perform_happy_birthday(&app, &day).await?;
                 perform_events_reminder(&app).await?;
+
+                // Check if it's January 1st for Happy New Year gathering
+                if current_day.day() == 1 && current_day.month() == 1 {
+                    send_greeting(&app, "heppy_new_year").await?;
+                }
             }
 
             _ = morning_interval.tick() => {
-                send_daily_greeting(&app, "morning").await?
+                send_greeting(&app, "morning").await?
             }
 
             _ = evening_interval.tick() => {
-                send_daily_greeting(&app, "night").await?
+                send_greeting(&app, "night").await?
             }
         }
     }
