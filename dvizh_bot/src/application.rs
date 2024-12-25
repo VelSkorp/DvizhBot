@@ -9,12 +9,9 @@ use derivative::Derivative;
 use env_logger;
 use log::{debug, error};
 use reqwest::Client;
-use rust_bert::pipelines::common::{ModelResource, ModelType};
-use rust_bert::resources::LocalResource;
-use rust_bert::pipelines::translation::{Language, TranslationModel, TranslationConfig};
+use rust_bert::pipelines::translation::{Language, TranslationModelBuilder, TranslationModel};
 use std::str::FromStr;
 use std::sync::Arc;
-use tch::Device;
 use tokio::sync::{Mutex, RwLock};
 use crate::tg::tg_utils::parse_memes;
 
@@ -58,7 +55,10 @@ impl Application {
 
         debug!("Args: {}", arg_line);
 
-        let translation_model = Arc::new(Mutex::new(create_translation_model()?));
+        let translation_model = Arc::new(Mutex::new(TranslationModelBuilder::new()
+            .with_source_languages(vec![Language::English])
+            .with_target_languages(vec![Language::Russian])
+            .create_model()?));
 
         Ok(Application {
             client,
@@ -85,38 +85,4 @@ impl Application {
             }
         });
     }
-}
-
-fn create_translation_model() -> Result<TranslationModel> {
-    // Prepare the local resources for the model, config, vocabulary, and merges
-    let model_resource = ModelResource::Torch(Box::new(LocalResource {
-        local_path: "./models/wmt19-en-ru/pytorch_model.bin".into(),
-    }));
-    let config_resource = LocalResource {
-        local_path: "./models/wmt19-en-ru/config.json".into(),
-    };
-    let vocab_resource = LocalResource {
-        local_path: "./models/wmt19-en-ru/vocab.src.json".into(),
-    };
-
-    // WMT19 models often use a BPE codes file as merges
-    let merges_resource = Some(LocalResource {
-        local_path: "./models/wmt19-en-ru/bpe.codes".into(),
-    });
-
-    // Create the translation configuration
-    let config = TranslationConfig::new(
-        ModelType::Marian,       // Try treating the WMT19 model as a Marian model
-        model_resource,
-        config_resource,
-        vocab_resource,
-        merges_resource,
-        vec![Language::English], // source language(s)
-        vec![Language::Russian], // target language(s)
-        Device::Cpu,
-    );
-
-    // Initialize the TranslationModel with the given configuration
-    let model = TranslationModel::new(config)?;
-    Ok(model)
 }

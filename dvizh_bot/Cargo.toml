@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-config = "0.14"
+config = "0.15.4"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -16,10 +16,10 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 r2d2 = "0.8"
 r2d2_sqlite = "0.25"
 chrono = { version = "0.4", features = ["serde"] }
-scraper = "0.21.0"
+scraper = "0.22.0"
 rand = "0.8"
 headless_chrome = "1.0.15"
 rust-bert = "0.23.0"
 tch = "0.17.0"
 derivative = "2.2"
-anyhow = "1.0"
+anyhow = "1.0.94"

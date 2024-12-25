@@ -5,7 +5,6 @@ use crate::tg::messaging::{
     edit_msg, send_keyboard_msg, send_keyboard_reply_msg, send_msg, send_photo_msg, send_reply_msg,
 };
 use crate::tg::msg_request::MsgRequest;
-use crate::tg::tg_utils::parse_memes;
 use crate::validations::{validate_argument_count, validate_date_format};
 use anyhow::Result;
 use log::debug;
@@ -262,7 +261,7 @@ async fn handle_list_events_command(
 
 async fn handle_meme_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Meme command was called");
-    let mut mem_cnt = req.app.meme_cache.read().await.len();
+    let mem_cnt = req.app.meme_cache.read().await.len();
     if mem_cnt <= 5 {
         debug!("get and load meme chache");
         req.app.init_meme_cache();
