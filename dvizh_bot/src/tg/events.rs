@@ -41,8 +41,9 @@ pub async fn reminde_events(app: &Application, event: Event) -> Result<serde_jso
         .await
         .get_translation_for_chat(&app.dvizh_repo, event.group_id, "event_template")
         .await?;
-    
-    let message = template.expect_text()?
+
+    let message = template
+        .expect_text()?
         .replace("{title}", &event.title)
         .replace("{date}", &event.date)
         .replace("{location}", &event.location)
@@ -79,7 +80,8 @@ pub async fn send_happy_birthday(
     let today = Utc::now().date_naive();
     let age = today.year() - birth_date.year();
 
-    let message = template.expect_text()?
+    let message = template
+        .expect_text()?
         .replace(
             "{first_name}",
             user.first_name

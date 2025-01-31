@@ -118,6 +118,17 @@ pub async fn remove_keyboard(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     send_msg_internal(offset, req, params).await
 }
 
+pub async fn ban_chat_member(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
+    let msg = req.get_msg();
+    let mut params = HashMap::new();
+    params.insert("chat_id", msg.chat.id.to_string());
+    params.insert("user_id", msg.from.id.to_string());
+    params.insert("revoke_messages", "true".to_string());
+    req.method = MsgType::EditMessageReplyMarkup;
+
+    send_msg_internal(offset, req, params).await
+}
+
 pub async fn send_request(
     client: &Client,
     api_token: &str,

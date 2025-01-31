@@ -1,6 +1,7 @@
 use crate::args;
 use crate::bot_config;
 use crate::db::repository::DvizhRepository;
+use crate::tg::tg_utils::parse_memes;
 use crate::LanguageCache;
 use anyhow::Result;
 use args::Verbose;
@@ -9,11 +10,10 @@ use derivative::Derivative;
 use env_logger;
 use log::{debug, error};
 use reqwest::Client;
-use rust_bert::pipelines::translation::{Language, TranslationModelBuilder, TranslationModel};
+use rust_bert::pipelines::translation::{Language, TranslationModel, TranslationModelBuilder};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
-use crate::tg::tg_utils::parse_memes;
 
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
@@ -55,10 +55,12 @@ impl Application {
 
         debug!("Args: {}", arg_line);
 
-        let translation_model = Arc::new(Mutex::new(TranslationModelBuilder::new()
-            .with_source_languages(vec![Language::English])
-            .with_target_languages(vec![Language::Russian])
-            .create_model()?));
+        let translation_model = Arc::new(Mutex::new(
+            TranslationModelBuilder::new()
+                .with_source_languages(vec![Language::English])
+                .with_target_languages(vec![Language::Russian])
+                .create_model()?,
+        ));
 
         Ok(Application {
             client,

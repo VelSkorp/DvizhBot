@@ -1,10 +1,10 @@
 use crate::db::repository::DvizhRepository;
+use crate::translations::translation_value::TranslationValue;
 use anyhow::Result;
 use log::debug;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
-use crate::translations::translation_value::TranslationValue;
 
 #[derive(Debug)]
 pub struct LanguageCache {
@@ -59,7 +59,7 @@ impl LanguageCache {
                 let translations = self.load_translations_for_language(&lang_code)?;
                 let mut cache = self.translation_cache.write().await;
                 cache.insert(lang_code.clone(), translations.clone());
-    
+
                 translations.get(key).cloned().unwrap_or_else(|| {
                     // If key is not found after loading, return default Text
                     TranslationValue::Text(key.to_string())
@@ -87,7 +87,10 @@ impl LanguageCache {
         Ok(code)
     }
 
-    fn load_translations_for_language(&self, lang_code: &str) -> Result<HashMap<String, TranslationValue>> {
+    fn load_translations_for_language(
+        &self,
+        lang_code: &str,
+    ) -> Result<HashMap<String, TranslationValue>> {
         debug!("Load {lang_code} translation cahce");
         let file_path = format!("src/translations/{lang_code}.json");
         let data = std::fs::read_to_string(&file_path)?;

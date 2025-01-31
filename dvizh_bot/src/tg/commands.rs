@@ -8,9 +8,9 @@ use crate::tg::msg_request::MsgRequest;
 use crate::validations::{validate_argument_count, validate_date_format};
 use anyhow::Result;
 use log::debug;
+use rand::prelude::SliceRandom;
 use rand::Rng;
 use serde_json::{json, Value};
-use rand::prelude::SliceRandom;
 
 pub async fn handle_command(
     offset: &mut i64,
@@ -44,7 +44,7 @@ pub async fn handle_command(
                         &args.remove(0),
                         None,
                         None,
-                        args.remove(1),
+                        args.remove(0),
                         offset,
                         req,
                     )
@@ -74,6 +74,7 @@ pub async fn handle_command(
         Some(CommandType::Meme) => handle_meme_command(offset, req).await,
         Some(CommandType::Astro) => handle_astro_command(offset, req).await,
         Some(CommandType::Luck) => handle_luck_command(offset, req).await,
+        Some(CommandType::Patience) => handle_patience_command(offset, req).await,
         Some(CommandType::Joke) => handle_joke_command(offset, req).await,
         Some(CommandType::EightBall) => match validate_argument_count(command_args, 1) {
             Ok(_) => handle_8ball_command(offset, req).await,
@@ -190,7 +191,7 @@ async fn handle_set_birthdate_for_command(
     )?;
     let text = req.get_translation_for("remeber_birthday").await?;
     req.set_msg_text(&format!("{} {}", text.expect_text()?, date));
-    send_msg(offset, req).await
+    send_reply_msg(offset, req).await
 }
 
 async fn handle_add_event_command(
@@ -242,7 +243,10 @@ async fn handle_list_events_command(
     send_msg(offset, req).await?;
 
     // Retrieve the entire event template from translation
-    let template = req.get_translation_for("event_template").await?.expect_text()?;
+    let template = req
+        .get_translation_for("event_template")
+        .await?
+        .expect_text()?;
 
     // Send each event using the template
     for event in events {
@@ -298,6 +302,16 @@ async fn handle_luck_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
     send_reply_msg(offset, req).await
 }
 
+async fn handle_patience_command(
+    offset: &mut i64,
+    req: &mut MsgRequest,
+) -> Result<serde_json::Value> {
+    debug!("Patience command was called");
+    let text = req.get_translation_for("patience").await?;
+    req.set_msg_text(&text.expect_text()?);
+    send_reply_msg(offset, req).await
+}
+
 async fn handle_joke_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Joke command was called");
 
@@ -319,7 +333,10 @@ async fn handle_joke_command(offset: &mut i64, req: &mut MsgRequest) -> Result<s
 
     debug!("{joke}");
 
-    let lang_code = req.get_dvizh_repo().await.get_chat_language_code(req.get_msg().chat.id)?;
+    let lang_code = req
+        .get_dvizh_repo()
+        .await
+        .get_chat_language_code(req.get_msg().chat.id)?;
     if lang_code != "en" {
         joke = translate_text(&req.app, &joke, &lang_code).await?;
     }
@@ -337,25 +354,27 @@ async fn handle_8ball_command(offset: &mut i64, req: &mut MsgRequest) -> Result<
 
     let translation = req.get_translation_for("8ball").await?.expect_array()?;
     let not_found = &"404: Not found".to_string();
-    let text = translation.choose(&mut rand::thread_rng()).unwrap_or(not_found);
-    
+    let text = translation
+        .choose(&mut rand::thread_rng())
+        .unwrap_or(not_found);
+
     req.set_msg_text(text);
     edit_msg(offset, req).await
 }
 
-async fn handle_tease_command(
-    offset: &mut i64,
-    req: &mut MsgRequest,
-) -> Result<serde_json::Value> {
+async fn handle_tease_command(offset: &mut i64, req: &mut MsgRequest) -> Result<serde_json::Value> {
     debug!("Tease command was called");
 
     let text = req.get_translation_for("thinking").await?;
     req.set_msg_text(&text.expect_text()?);
     send_reply_msg(offset, req).await?;
-    
+
     let chat_id = req.get_msg().chat.id;
     let lang_code = req.get_dvizh_repo().await.get_chat_language_code(chat_id)?;
-    let url = format!("https://evilinsult.com/generate_insult.php?lang={}", lang_code);
+    let url = format!(
+        "https://evilinsult.com/generate_insult.php?lang={}",
+        lang_code
+    );
     let client = reqwest::Client::new();
     let response = client
         .get(url)
@@ -369,7 +388,7 @@ async fn handle_tease_command(
     edit_msg(offset, req).await
 }
 
-async fn handle_test_command(
+pub async fn handle_test_command(
     text: Vec<String>,
     offset: &mut i64,
     req: &mut MsgRequest,

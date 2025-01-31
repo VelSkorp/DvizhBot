@@ -6,16 +6,25 @@ use anyhow::Result;
 use chrono::Local;
 use headless_chrome::{Browser, LaunchOptions};
 use log::debug;
+use log::error;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::env::temp_dir;
 use std::time::Duration;
 
 pub async fn parse_memes() -> Result<Vec<String>> {
+    if let Err(e) = std::fs::remove_dir_all(temp_dir()) {
+        error!("Failed to remove temp directory: {:?}", e);
+    }
+
     // Initialize the headless browser
     let browser = Browser::new(LaunchOptions {
         headless: true,
+        window_size: Some((800, 600)),
+        enable_gpu: false,
+        sandbox: false,
         ..Default::default()
     })?;
 
@@ -25,7 +34,11 @@ pub async fn parse_memes() -> Result<Vec<String>> {
     tab.wait_until_navigated()?;
     tab.wait_for_element("div img[src*='storage/meme']")?;
     tab.evaluate("window.scrollTo(0, document.body.scrollHeight);", false)?;
-    std::thread::sleep(Duration::from_secs(2));
+    tab.wait_for_element_with_custom_timeout(
+        "div img[src*='storage/meme']",
+        Duration::from_secs(10),
+    )?;
+
     let html = tab.get_content()?;
 
     debug!("Parse html");

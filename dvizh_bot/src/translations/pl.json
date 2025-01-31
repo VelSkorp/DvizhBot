@@ -1,7 +1,7 @@
 {
     "welcome": "Witamy",
     "hello": "Cześć, jestem botem Dvizh Wrocław🔥",
-    "help": "*Menu pomocy*:\n\r\n\t- /hello: Przywitaj się z botem.\r\n\t- /help: Pokaż to menu pomocy.\r\n\t- /setbirthday \"[date]\": Ustaw datę urodzenia. (Format: DD.MM.RRRR) \r\n\t- /setbirthdayfor \"[@username]\". \"[date]\": Ustawia datę urodzin dla innego użytkownika. (Format: DD.MM.RRRR) \r\n\t- /addevent \"[title]\" \"[data]\" \"[lokalizacja]\" \"[opis]\": Dodaje nowe wydarzenie do grupy. (Format daty: DD.MM.RRRR) \r\n\t- /listevents: Lista wszystkich wydarzeń dla tej grupy.\r\n\t- /meme: Wyślij mem radnom z reddit.\r\n\t- /luck: Życz mi powodzenia.\r\n\t- /astro: Uzyskaj spersonalizowany horoskop dzienny.\r\n\t- /joke: Opowiedz dowcip.\r\n\t- /8ball: Pomóż mi podjąć decyzję.",
+    "help": "*Menu pomocy*:\n\r\n\t- /hello: Przywitaj się z botem.\r\n\t- /help: Pokaż to menu pomocy.\r\n\t- /setbirthday \"[date]\": Ustaw datę urodzenia. (Format: DD.MM.RRRR) \r\n\t- /setbirthdayfor \"[@username]\". \"[date]\": Ustawia datę urodzin dla innego użytkownika. (Format: DD.MM.RRRR) \r\n\t- /addevent \"[title]\" \"[data]\" \"[lokalizacja]\" \"[opis]\": Dodaje nowe wydarzenie do grupy. (Format daty: DD.MM.RRRR) \r\n\t- /listevents: Lista wszystkich wydarzeń dla tej grupy.\r\n\t- /meme: Wyślij radnom mem.\r\n\t- /astro: Uzyskaj spersonalizowany horoskop dzienny.\r\n\t- /luck: Życz mi powodzenia.\r\n\t- /patience: Życz mi cierpliwości.\r\n\t- /joke: Opowiedz dowcip.\r\n\t- /8ball: Pomóż mi podjąć decyzję.",
     "remeber_birthday": "Zapamiętałem ten dzień",
     "remeber_event": "Zapamiętałem tą imprezę",
     "no_upcoming_event": "Nie ma żadnych nadchodzących imprez.",
@@ -9,6 +9,7 @@
     "morning": "Miłego dnia! 🌅",
     "night": "Dobrej nocy! 🌙",
     "luck": "Powodzenia w życiu! :)",
+    "patience": "Cierpliwości w życiu! :)",
     "astro": "Wybierz swój znak zodiaku z poniższych opcji! 🌟",
     "thinking": "Zastanawiam się... 🤔",
     "heppy_new_year": "Szczęśliwego Nowego Roku!!!",

@@ -7,6 +7,7 @@ pub enum MsgType {
     EditMessageText,
     EditMessageReplyMarkup,
     GetChatAdministrators,
+    BanChatMember,
 }
 
 pub fn msg_type_to_str(t: &MsgType) -> &'static str {
@@ -18,5 +19,6 @@ pub fn msg_type_to_str(t: &MsgType) -> &'static str {
         MsgType::EditMessageText => "editMessageText",
         MsgType::EditMessageReplyMarkup => "editMessageReplyMarkup",
         MsgType::GetChatAdministrators => "getChatAdministrators",
+        MsgType::BanChatMember => "banChatMember",
     }
 }

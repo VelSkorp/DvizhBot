@@ -1,6 +1,6 @@
-use serde::Deserialize;
 use anyhow::anyhow;
 use anyhow::Result;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]

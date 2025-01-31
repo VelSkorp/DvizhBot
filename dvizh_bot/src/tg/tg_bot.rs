@@ -15,7 +15,7 @@ pub async fn run(app: Application, t: MsgType) -> Result<()> {
 
     // Set the initial offset to 0
     let mut offset: i64 = 0;
-    
+
     loop {
         // Set up the parameters for the getUpdates method
         let mut params = HashMap::new();
