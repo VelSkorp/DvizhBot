@@ -3,7 +3,7 @@ use crate::db::db_objects::User as DbUser;
 use crate::spam::is_spam_by_score;
 use crate::tg::callback_queries::handle_callback_query;
 use crate::tg::command_utils::{command_str_to_type, parse_command_arguments};
-use crate::tg::commands::{handle_command, handle_help_command, handle_start_command};
+use crate::tg::commands::{handle_command, handle_start_command};
 use crate::tg::messaging::{ban_chat_member, send_error_msg, send_msg};
 use crate::tg::msg_request::{create_msg_request, MsgRequest};
 use crate::tg::tg_objects::User;
@@ -109,19 +109,23 @@ async fn handle_new_member(
                 .add_admin(&admin.username, chat_id)?;
         }
     } else {
-        let text = req.get_translation_for("welcome").await?;
-        req.set_msg_text(&format!("{} {}", &text.expect_text()?, member.first_name));
         req.get_dvizh_repo().await.add_or_update_user(
             DbUser::new(
                 member.username,
-                Some(member.first_name),
+                Some(member.first_name.clone()),
                 None,
                 member.language_code,
             ),
             chat_id,
         )?;
-        send_msg(offset, req).await?;
     }
 
-    handle_help_command(offset, req).await
+    let message = req
+        .get_translation_for("welcome_template")
+        .await?
+        .expect_text()?
+        .replace("{first_name}", &member.first_name);
+
+    req.set_msg_text(&message);
+    send_msg(offset, req).await
 }

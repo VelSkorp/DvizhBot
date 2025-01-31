@@ -1,5 +1,4 @@
 {
-    "welcome": "Witamy",
     "hello": "Cześć, jestem botem Dvizh Wrocław🔥",
     "help": "*Menu pomocy*:\n\r\n\t- /hello: Przywitaj się z botem.\r\n\t- /help: Pokaż to menu pomocy.\r\n\t- /setbirthday \"[date]\": Ustaw datę urodzenia. (Format: DD.MM.RRRR) \r\n\t- /setbirthdayfor \"[@username]\". \"[date]\": Ustawia datę urodzin dla innego użytkownika. (Format: DD.MM.RRRR) \r\n\t- /addevent \"[title]\" \"[data]\" \"[lokalizacja]\" \"[opis]\": Dodaje nowe wydarzenie do grupy. (Format daty: DD.MM.RRRR) \r\n\t- /listevents: Lista wszystkich wydarzeń dla tej grupy.\r\n\t- /meme: Wyślij radnom mem.\r\n\t- /astro: Uzyskaj spersonalizowany horoskop dzienny.\r\n\t- /luck: Życz mi powodzenia.\r\n\t- /patience: Życz mi cierpliwości.\r\n\t- /joke: Opowiedz dowcip.\r\n\t- /8ball: Pomóż mi podjąć decyzję.",
     "remeber_birthday": "Zapamiętałem ten dzień",
@@ -14,6 +13,7 @@
     "thinking": "Zastanawiam się... 🤔",
     "heppy_new_year": "Szczęśliwego Nowego Roku!!!",
     
+    "welcome_template": "Witaj, {first_name}! Witamy w naszym pokoju rozmów.\r\nWitamy w naszym pokoju rozmów.\r\nCenimy uprzejmość, unikamy spamu i szanujemy przestrzeń osobistą.\r\nJeśli potrzebujesz pomocy, użyj polecenia /help.",
     "birthday_template": "Wszystkiego najlepszego dla {first_name} (@{username}) 🎉 Skończyłeś {age} lat! Niech ten rok będzie pełen radości, sukcesów i szczęśliwych chwil! 🥳",
     "event_template": "📅 *Tytuł imprezy*: {title}\n🗓 *Data*: {date}\n📍 *Lokalizacja*: {location}\n📖 *Opis*: {description}\n",
     
